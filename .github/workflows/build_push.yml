@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**'
+      - '!**.md'
+      - '!.github/**'
+      - '.github/scripts/**'
+      - '.github/workflows/build_push.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: $( echo ${{ github.event.head_commit.id }} | cut -c1-7 )
+      COMMIT: $( jq -Rsa . <<< "${{ github.event.head_commit.message }}"  | tail -c +2 | head -c -2 )
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 17
+          cache: 'gradle'
+
+      - name: Prepare signing key
+        run:  echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > $GITHUB_WORKSPACE/signing-key.jks
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build extensions
+        run: |
+          ./gradlew assembleRelease \
+          -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/signing-key.jks \
+          -Pandroid.injected.signing.store.password=${{ secrets.KEY_STORE_PASSWORD  }} \
+          -Pandroid.injected.signing.key.alias=${{ secrets.ALIAS }} \
+          -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD  }}
+          cp app/build/outputs/apk/release/app-release.apk app/build/jf-${{ env.VERSION }}.apk
+          
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          path: app/build/outputs/apk/release/app-release.apk
