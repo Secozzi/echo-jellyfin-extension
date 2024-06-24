@@ -30,6 +30,7 @@ import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.common.settings.Setting
+import dev.brahmkshatriya.echo.common.settings.SettingList
 import dev.brahmkshatriya.echo.common.settings.Settings
 import dev.brahmkshatriya.echo.extension.endpoints.AlbumEndpoint
 import dev.brahmkshatriya.echo.extension.endpoints.ArtistEndpoint
@@ -164,11 +165,13 @@ class JellyfinExtension :
                     makeApiRequest(userCredentials, similarUrl),
                 ).execute().parseAs<ItemsListDto<ArtistDto>>()
 
+                val (name, sortOrder, sortBy) = discSorting.split(",", limit = 3)
+
                 listOf(
                     trackEndpoint.getItemsContainer(
-                        containerName = "Recent songs",
-                        sortBy = "ProductionYear,PremiereDate,SortName",
-                        sortOrder = "Descending",
+                        containerName = "$name Songs".trim(),
+                        sortBy = sortBy,
+                        sortOrder = sortOrder,
                         fields = "ParentId",
                         limit = 15,
                         loadMore = true,
@@ -176,9 +179,9 @@ class JellyfinExtension :
                         addQueryParameter("ArtistIds", artist.id)
                     },
                     albumEndpoint.getItemsContainer(
-                        containerName = "Recent Albums",
-                        sortBy = "ProductionYear,PremiereDate,SortName",
-                        sortOrder = "Descending",
+                        containerName = "$name Albums".trim(),
+                        sortBy = sortBy,
+                        sortOrder = sortOrder,
                         limit = 15,
                         loadMore = true,
                     ) {
@@ -439,12 +442,29 @@ class JellyfinExtension :
 
     // =============== Settings ===============
 
-    override val settingItems: List<Setting> = emptyList()
+    override val settingItems: List<Setting> = listOf(
+        SettingList(
+            title = "Artist discography sorting",
+            key = "discography_sorting",
+            entryTitles = listOf("Name", "Play Count", "Recently Added", "Release Date"),
+            // (Display title,SortOrder,SortKey)
+            entryValues = listOf(
+                ",Ascending,SortName",
+                "Most Played,Descending,PlayCount",
+                "Recent,Descending,DateCreated,SortName",
+                "New,Descending,ProductionYear,PremiereDate,SortName",
+            ),
+            defaultEntryIndex = 0,
+        ),
+    )
 
     private lateinit var setting: Settings
     override fun setSettings(settings: Settings) {
         setting = settings
     }
+
+    private val discSorting
+        get() = setting.getString("discography_sorting") ?: ",Ascending,SortName"
 
     // ================ Login =================
 
