@@ -7,22 +7,21 @@ import dev.brahmkshatriya.echo.common.models.Streamable
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.extension.TicksPerMs
 import dev.brahmkshatriya.echo.extension.toImage
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 class TrackDto(
-    @SerialName("Album") val albumName: String,
-    @SerialName("AlbumId") val albumId: String,
-    @SerialName("AlbumPrimaryImageTag") val albumPImgTag: String? = null,
-    @SerialName("ArtistItems") val artists: List<ArtistItemsDto>,
-    @SerialName("Id") val id: String,
-    @SerialName("ImageTags") val imageTags: ImageTagDto,
-    @SerialName("MediaSources") val mediaSources: List<MediaSource>? = null,
-    @SerialName("Name") val name: String,
-    @SerialName("PlaylistItemId") val playlistItemId: String? = null,
-    @SerialName("RunTimeTicks") val runTime: Long? = null,
-    @SerialName("UserData") val userData: UserData,
+    val album: String,
+    val albumId: String,
+    val albumPrimaryImageTag: String? = null,
+    val artistItems: List<ArtistItemsDto>,
+    val id: String,
+    val imageTags: ImageTagDto,
+    val mediaSources: List<MediaSource>? = null,
+    val name: String,
+    val playlistItemId: String? = null,
+    val runTimeTicks: Long? = null,
+    val userData: UserData,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
         return EchoMediaItem.TrackItem(
@@ -32,16 +31,16 @@ class TrackDto(
 
     fun toTrack(serverUrl: String): Track {
         return Track(
-            album = Album(id = this.albumId, title = this.albumName),
-            artists = this.artists.map { artist ->
+            album = Album(id = this.albumId, title = this.album),
+            artists = this.artistItems.map { artist ->
                 Artist(id = artist.id, name = artist.name)
             },
             audioStreamables = this.mediaSources?.firstOrNull()?.let {
                 listOf(Streamable(this.id, it.bitrate))
             } ?: emptyList(),
             cover = this.imageTags.primary.toImage(serverUrl, this.id)
-                ?: this.albumPImgTag.toImage(serverUrl, this.albumId),
-            duration = this.runTime?.div(TicksPerMs),
+                ?: this.albumPrimaryImageTag.toImage(serverUrl, this.albumId),
+            duration = this.runTimeTicks?.div(TicksPerMs),
             extras = buildMap {
                 playlistItemId?.also {
                     put("playlist_item_id", playlistItemId)
@@ -57,12 +56,12 @@ class TrackDto(
 
     @Serializable
     class UserData(
-        @SerialName("IsFavorite") val isFavorite: Boolean,
-        @SerialName("PlayCount") val playCount: Int,
+        val isFavorite: Boolean,
+        val playCount: Int,
     )
 
     @Serializable
     class MediaSource(
-        @SerialName("Bitrate") val bitrate: Int,
+        val bitrate: Int,
     )
 }

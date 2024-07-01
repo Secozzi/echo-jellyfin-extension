@@ -3,7 +3,6 @@ package dev.brahmkshatriya.echo.extension.models
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.MediaItemsContainer
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 interface MediaItem {
@@ -12,8 +11,8 @@ interface MediaItem {
 
 @Serializable
 class ItemsListDto<T : MediaItem>(
-    @SerialName("Items") val items: List<T>,
-    @SerialName("TotalRecordCount") val itemCount: Int,
+    val items: List<T>,
+    val totalRecordCount: Int,
 ) {
     fun toMediaItemsContainer(
         name: String,

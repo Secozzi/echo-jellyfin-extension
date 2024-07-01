@@ -4,17 +4,16 @@ import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.extension.TicksPerMs
 import dev.brahmkshatriya.echo.extension.toImage
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 class PlaylistDto(
-    @SerialName("Name") val name: String,
-    @SerialName("Id") val id: String,
-    @SerialName("Overview") val overview: String? = null,
-    @SerialName("RunTimeTicks") val runTime: Long? = null,
-    @SerialName("ChildCount") val childCount: Int? = null,
-    @SerialName("ImageTags") val imageTags: ImageTagDto,
+    val name: String,
+    val id: String,
+    val overview: String? = null,
+    val runTimeTicks: Long? = null,
+    val childCount: Int? = null,
+    val imageTags: ImageTagDto,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
         return EchoMediaItem.Lists.PlaylistItem(
@@ -26,7 +25,7 @@ class PlaylistDto(
         return Playlist(
             cover = this.imageTags.primary.toImage(serverUrl, this.id),
             description = this.overview,
-            duration = this.runTime?.div(TicksPerMs),
+            duration = this.runTimeTicks?.div(TicksPerMs),
             id = this.id,
 
             // There doesn't seem to be any nice way of retrieving this, but who's gonna use this

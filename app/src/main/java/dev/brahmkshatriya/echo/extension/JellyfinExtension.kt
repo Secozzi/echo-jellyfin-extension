@@ -523,7 +523,7 @@ class JellyfinExtension :
         val user = User(
             id = responseData.user.id,
             name = responseData.user.name,
-            cover = responseData.user.pImgtag.toImage(serverUrl, responseData.user.id),
+            cover = responseData.user.primaryImageTag.toImage(serverUrl, responseData.user.id),
             extras = mapOf(
                 "access_token" to responseData.accessToken,
                 "server_id" to responseData.serverId,

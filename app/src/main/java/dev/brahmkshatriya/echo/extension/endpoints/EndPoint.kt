@@ -160,7 +160,7 @@ abstract class EndPoint<T : MediaItem>(
                 ).execute().parseAs(ItemsListDto.serializer(serializer))
             }
 
-            val nextPage = if (start + limit <= items.itemCount) {
+            val nextPage = if (start + limit <= items.totalRecordCount) {
                 start + limit
             } else {
                 -1

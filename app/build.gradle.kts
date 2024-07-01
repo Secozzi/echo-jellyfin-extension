@@ -50,6 +50,7 @@ android {
 	
     kotlinOptions {
         jvmTarget = "1.8"
+        freeCompilerArgs += "-opt-in=kotlinx.serialization.ExperimentalSerializationApi"
     }
 
     @Suppress("UnstableApiUsage")

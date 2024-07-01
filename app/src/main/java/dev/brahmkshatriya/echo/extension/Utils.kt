@@ -2,8 +2,10 @@ package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.models.ImageHolder
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
+import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNamingStrategy
 import okhttp3.CacheControl
 import okhttp3.FormBody
 import okhttp3.Headers
@@ -114,8 +116,19 @@ fun String?.toImage(serverUrl: String, id: String): ImageHolder? {
     return this?.let { "$serverUrl/Items/$id/Images/Primary".toImageHolder() }
 }
 
+object PascalCaseToCamelCase : JsonNamingStrategy {
+    override fun serialNameForJson(
+        descriptor: SerialDescriptor,
+        elementIndex: Int,
+        serialName: String,
+    ): String {
+        return serialName.replaceFirstChar { it.uppercase() }
+    }
+}
+
 val json = Json {
     ignoreUnknownKeys = true
+    namingStrategy = PascalCaseToCamelCase
 }
 
 inline fun <reified T> Response.parseAs(): T {

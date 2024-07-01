@@ -16,8 +16,6 @@ import dev.brahmkshatriya.echo.extension.toImage
 import dev.brahmkshatriya.echo.extension.toRequestBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -58,7 +56,7 @@ class PlaylistEndpoint(client: OkHttpClient) : EndPoint<PlaylistDto>(
 
     @Serializable
     class IdDto(
-        @SerialName("Id") val id: String,
+        val id: String,
     )
 
     fun deletePlaylist(playlist: Playlist) {
@@ -88,7 +86,6 @@ class PlaylistEndpoint(client: OkHttpClient) : EndPoint<PlaylistDto>(
         ).execute()
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
     fun editPlaylistMetadata(playlist: Playlist, title: String, description: String?) {
         val url = userCredentials.serverUrl.toHttpUrl().newBuilder().apply {
             addPathSegment("Items")
@@ -210,7 +207,7 @@ class PlaylistEndpoint(client: OkHttpClient) : EndPoint<PlaylistDto>(
         return Playlist(
             cover = playlistData.imageTags.primary.toImage(userCredentials.serverUrl, playlistData.id),
             description = playlistData.overview,
-            duration = playlistData.runTime?.div(TicksPerMs),
+            duration = playlistData.runTimeTicks?.div(TicksPerMs),
             id = playlistData.id,
             isEditable = isPlaylistEditable,
             title = playlistData.name,
@@ -220,7 +217,7 @@ class PlaylistEndpoint(client: OkHttpClient) : EndPoint<PlaylistDto>(
 
     @Serializable
     class CanEditDto(
-        @SerialName("CanEdit") val canEdit: Boolean,
+        val canEdit: Boolean,
     )
 
     fun loadTracks(playlist: Playlist): PagedData<Track> = PagedData.Single {
@@ -262,6 +259,6 @@ class PlaylistEndpoint(client: OkHttpClient) : EndPoint<PlaylistDto>(
 
     @Serializable
     class IsFavoriteDto(
-        @SerialName("IsFavorite") val isFavorite: Boolean,
+        val isFavorite: Boolean,
     )
 }

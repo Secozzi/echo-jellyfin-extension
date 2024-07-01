@@ -3,15 +3,14 @@ package dev.brahmkshatriya.echo.extension.models
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.extension.toImage
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 class ArtistDto(
-    @SerialName("Name") val name: String,
-    @SerialName("Id") val id: String,
-    @SerialName("Overview") val overview: String? = null,
-    @SerialName("ImageTags") val imageTags: ImageTagDto,
+    val name: String,
+    val id: String,
+    val overview: String? = null,
+    val imageTags: ImageTagDto,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
         return EchoMediaItem.Profile.ArtistItem(
