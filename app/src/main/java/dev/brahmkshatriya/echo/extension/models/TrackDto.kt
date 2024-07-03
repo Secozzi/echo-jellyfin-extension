@@ -11,17 +11,17 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class TrackDto(
-    val album: String,
-    val albumId: String,
-    val albumPrimaryImageTag: String? = null,
-    val artistItems: List<ArtistItemsDto>,
     val id: String,
-    val imageTags: ImageTagDto,
-    val mediaSources: List<MediaSource>? = null,
     val name: String,
-    val playlistItemId: String? = null,
-    val runTimeTicks: Long? = null,
-    val userData: UserData,
+    private val album: String,
+    private val albumId: String,
+    private val albumPrimaryImageTag: String? = null,
+    private val artistItems: List<ArtistItemsDto>,
+    private val imageTags: ImageTagDto,
+    private val mediaSources: List<MediaSource>? = null,
+    private val playlistItemId: String? = null,
+    private val runTimeTicks: Long? = null,
+    private val userData: UserData,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
         return EchoMediaItem.TrackItem(

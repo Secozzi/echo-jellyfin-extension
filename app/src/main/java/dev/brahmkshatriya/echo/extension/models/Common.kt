@@ -9,6 +9,6 @@ class ImageTagDto(
 
 @Serializable
 class ArtistItemsDto(
-    val name: String,
     val id: String,
+    val name: String,
 )

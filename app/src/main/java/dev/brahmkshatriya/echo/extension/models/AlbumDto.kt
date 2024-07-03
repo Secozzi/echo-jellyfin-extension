@@ -9,14 +9,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class AlbumDto(
-    val name: String,
     val id: String,
-    val premiereDate: String? = null,
-    val overview: String? = null,
-    val runTimeTicks: Long? = null,
-    val childCount: Int? = null,
-    val imageTags: ImageTagDto,
-    val artistItems: List<ArtistItemsDto>,
+    val name: String,
+    private val artistItems: List<ArtistItemsDto>,
+    private val childCount: Int? = null,
+    private val imageTags: ImageTagDto,
+    private val overview: String? = null,
+    private val premiereDate: String? = null,
+    private val runTimeTicks: Long? = null,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
         return EchoMediaItem.Lists.AlbumItem(

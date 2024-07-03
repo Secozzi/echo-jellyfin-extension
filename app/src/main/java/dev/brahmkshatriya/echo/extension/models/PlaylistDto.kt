@@ -8,12 +8,12 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class PlaylistDto(
-    val name: String,
+    val childCount: Int? = null,
     val id: String,
+    val imageTags: ImageTagDto,
+    val name: String,
     val overview: String? = null,
     val runTimeTicks: Long? = null,
-    val childCount: Int? = null,
-    val imageTags: ImageTagDto,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
         return EchoMediaItem.Lists.PlaylistItem(

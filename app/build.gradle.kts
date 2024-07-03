@@ -4,7 +4,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.0"
-	id("io.gitlab.arturbosch.detekt") version "1.23.3"
+    id("io.gitlab.arturbosch.detekt") version "1.23.6"
 }
 
 val extensionClass = "JellyfinExtension"
@@ -34,7 +34,7 @@ android {
         resValue("string", "version", version)
         resValue("string", "description", description)
         resValue("string", "author", author)
-        iconUrl?.let { resValue("string", "icon_url", it) }
+        resValue("string", "icon_url", iconUrl)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -42,12 +42,12 @@ android {
     buildFeatures {
         buildConfig = true
     }
-	
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-	
+
     kotlinOptions {
         jvmTarget = "1.8"
         freeCompilerArgs += "-opt-in=kotlinx.serialization.ExperimentalSerializationApi"
@@ -62,7 +62,6 @@ android {
 }
 
 private val configFile = files("$rootDir/config/detekt/detekt.yml")
-private val baselineFile = file("$rootDir/config/detekt/baseline.xml")
 private val kotlinFiles = "**/*.kt"
 private val resourceFiles = "**/resources/**"
 private val buildFiles = "**/build/**"
@@ -72,10 +71,9 @@ private val scriptsFiles = "**/*.kts"
 detekt {
     config.setFrom(configFile)
     buildUponDefaultConfig = true
-	autoCorrect = false
+    autoCorrect = false
     ignoreFailures = false
     allRules = false
-	baseline = file(baselineFile)
 }
 
 tasks.withType<Detekt>().configureEach {
@@ -91,15 +89,15 @@ tasks.withType<Detekt>().configureEach {
 dependencies {
     val libVersion = "38e1df03f6"
     compileOnly("com.github.brahmkshatriya:echo:$libVersion")
-	
-	implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1-Beta")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
 
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1-Beta")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     testImplementation("com.github.brahmkshatriya:echo:$libVersion")
-	
-	detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.3")
+
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.6")
 }

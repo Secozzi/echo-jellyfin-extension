@@ -4,14 +4,12 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class LoginDto(
-    val user: UserDto,
-    val serverId: String,
     val accessToken: String,
+    val user: UserDto,
 ) {
     @Serializable
     class UserDto(
-        val name: String,
         val id: String,
-        val primaryImageTag: String? = null,
+        val name: String,
     )
 }

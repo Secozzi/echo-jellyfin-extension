@@ -7,10 +7,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class ArtistDto(
-    val name: String,
     val id: String,
-    val overview: String? = null,
-    val imageTags: ImageTagDto,
+    val name: String,
+    private val imageTags: ImageTagDto,
+    private val overview: String? = null,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
         return EchoMediaItem.Profile.ArtistItem(

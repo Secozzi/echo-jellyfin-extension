@@ -141,10 +141,9 @@ inline fun <reified T> T.toRequestBody(): RequestBody {
     )
 }
 
-data class UserCredentials(
+class UserCredentials(
     val userId: String,
     val accessToken: String,
-    val serverId: String,
     val serverUrl: String,
 ) {
     fun urlBuilder(): HttpUrl.Builder = serverUrl.toHttpUrl().newBuilder()

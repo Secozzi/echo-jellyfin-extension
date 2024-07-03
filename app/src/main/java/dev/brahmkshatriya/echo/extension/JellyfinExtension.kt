@@ -20,6 +20,7 @@ import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem.Companion.toMediaItem
 import dev.brahmkshatriya.echo.common.models.ExtensionType
 import dev.brahmkshatriya.echo.common.models.ImageHolder
+import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.MediaItemsContainer
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
@@ -76,7 +77,6 @@ class JellyfinExtension :
     private var userCredentials = UserCredentials(
         userId = "",
         accessToken = "",
-        serverId = "",
         serverUrl = "",
     )
 
@@ -523,10 +523,9 @@ class JellyfinExtension :
         val user = User(
             id = responseData.user.id,
             name = responseData.user.name,
-            cover = responseData.user.primaryImageTag.toImage(serverUrl, responseData.user.id),
+            cover = "$serverUrl/Users/${responseData.user.id}/Images/Primary".toImageHolder(),
             extras = mapOf(
                 "access_token" to responseData.accessToken,
-                "server_id" to responseData.serverId,
                 "server_url" to serverUrl,
             ),
         )
@@ -539,7 +538,6 @@ class JellyfinExtension :
         userCredentials = UserCredentials(
             user.id,
             user.extras["access_token"]!!,
-            user.extras["server_id"]!!,
             user.extras["server_url"]!!,
         )
         albumEndpoint.userCredentials = userCredentials
