@@ -1,5 +1,6 @@
 package dev.brahmkshatriya.echo.extension
 
+import android.content.Context
 import android.os.Build
 import dev.brahmkshatriya.echo.common.clients.AlbumClient
 import dev.brahmkshatriya.echo.common.clients.ArtistClient
@@ -12,13 +13,12 @@ import dev.brahmkshatriya.echo.common.clients.RadioClient
 import dev.brahmkshatriya.echo.common.clients.SearchClient
 import dev.brahmkshatriya.echo.common.clients.TrackClient
 import dev.brahmkshatriya.echo.common.clients.TrackerClient
-import dev.brahmkshatriya.echo.common.exceptions.LoginRequiredException
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
+import dev.brahmkshatriya.echo.common.models.ClientException
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem.Companion.toMediaItem
-import dev.brahmkshatriya.echo.common.models.ExtensionType
 import dev.brahmkshatriya.echo.common.models.ImageHolder
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.MediaItemsContainer
@@ -30,6 +30,7 @@ import dev.brahmkshatriya.echo.common.models.StreamableVideo
 import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
+import dev.brahmkshatriya.echo.common.providers.ContextProvider
 import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.SettingList
 import dev.brahmkshatriya.echo.common.settings.Settings
@@ -63,6 +64,7 @@ import java.io.File
 class JellyfinExtension :
     AlbumClient,
     ArtistClient,
+    ContextProvider,
     EditPlaylistCoverClient,
     ExtensionClient,
     HomeFeedClient,
@@ -89,15 +91,20 @@ class JellyfinExtension :
     @Suppress("EmptyFunctionBlock")
     override suspend fun onExtensionSelected() { }
 
+    private lateinit var context: Context
+    override fun setContext(context: Context) {
+        this.context = context
+    }
+
     // ============== Home Feed ===============
 
     override fun getHomeFeed(tab: Tab?): PagedData<MediaItemsContainer> {
-        require(userCredentials.userId.isNotEmpty()) { throw loginRequiredException }
+        require(userCredentials.userId.isNotEmpty()) { throw ClientException.LoginRequired() }
         return getHomeFeed(albumEndpoint, trackEndpoint)
     }
 
     override suspend fun getHomeTabs(): List<Tab> {
-        require(userCredentials.userId.isNotEmpty()) { throw loginRequiredException }
+        require(userCredentials.userId.isNotEmpty()) { throw ClientException.LoginRequired() }
         return emptyList()
     }
 
@@ -231,12 +238,12 @@ class JellyfinExtension :
 
     // ================ Search ================
 
-    override suspend fun quickSearch(query: String?): List<QuickSearchItem> {
-        return emptyList()
-    }
-
     override fun searchFeed(query: String?, tab: Tab?): PagedData<MediaItemsContainer> {
-        require(userCredentials.userId.isNotEmpty()) { throw loginRequiredException }
+        require(userCredentials.userId.isNotEmpty()) { throw ClientException.LoginRequired() }
+
+        query?.let {
+            saveInHistory(it)
+        }
 
         return when (tab?.id) {
             "tracks" -> getTrackSearch(trackEndpoint, query)
@@ -247,7 +254,7 @@ class JellyfinExtension :
     }
 
     override suspend fun searchTabs(query: String?): List<Tab> {
-        require(userCredentials.userId.isNotEmpty()) { throw loginRequiredException }
+        require(userCredentials.userId.isNotEmpty()) { throw ClientException.LoginRequired() }
         return listOf(
             Tab("tracks", "Tracks"),
             Tab("albums", "Albums"),
@@ -255,10 +262,42 @@ class JellyfinExtension :
         )
     }
 
+    // ============= Quick Search =============
+
+    override suspend fun quickSearch(query: String?): List<QuickSearchItem> {
+        return if (query.isNullOrBlank()) {
+            getHistory().map { QuickSearchItem.SearchQueryItem(it, true) }
+        } else {
+            emptyList()
+        }
+    }
+
+    override suspend fun deleteSearchHistory(query: QuickSearchItem.SearchQueryItem) {
+        val history = getHistory().toMutableList()
+        history.remove(query.query)
+        context.saveToCache(CACHE_FOLDER_ID, CACHE_DIRECTORY_NAME) { parcel ->
+            parcel.writeStringList(history)
+        }
+    }
+
+    private fun getHistory(): List<String> {
+        return context.getFromCache(CACHE_FOLDER_ID, CACHE_DIRECTORY_NAME) {
+            it.createStringArrayList()?.distinct()?.take(QUICK_SEARCH_LIMIT)
+        } ?: emptyList()
+    }
+
+    private fun saveInHistory(query: String) {
+        val history = getHistory().toMutableList()
+        history.add(0, query)
+        context.saveToCache(CACHE_FOLDER_ID, CACHE_DIRECTORY_NAME) { parcel ->
+            parcel.writeStringList(history)
+        }
+    }
+
     // =============== Library ================
 
     override suspend fun getLibraryTabs(): List<Tab> {
-        require(userCredentials.userId.isNotEmpty()) { throw loginRequiredException }
+        require(userCredentials.userId.isNotEmpty()) { throw ClientException.LoginRequired() }
         return listOf(
             Tab("all", "All"),
             Tab("playlists", "Playlists"),
@@ -270,7 +309,7 @@ class JellyfinExtension :
     }
 
     override fun getLibraryFeed(tab: Tab?): PagedData<MediaItemsContainer> {
-        require(userCredentials.userId.isNotEmpty()) { throw loginRequiredException }
+        require(userCredentials.userId.isNotEmpty()) { throw ClientException.LoginRequired() }
 
         return when (tab?.id) {
             "all" -> getLibraryAll(albumEndpoint, artistEndpoint, playlistEndpoint, trackEndpoint)
@@ -390,6 +429,10 @@ class JellyfinExtension :
 
     override suspend fun radio(track: Track): Playlist {
         return getRadio(track.id, track.title, track.cover)
+    }
+
+    override suspend fun radio(user: User): Playlist {
+        throw UnsupportedOperationException()
     }
 
     // =============== Tracking ===============
@@ -534,7 +577,7 @@ class JellyfinExtension :
     }
 
     override suspend fun onSetLoginUser(user: User?) {
-        require(user != null) { throw loginRequiredException }
+        require(user != null) { throw ClientException.LoginRequired() }
         userCredentials = UserCredentials(
             user.id,
             user.extras["access_token"]!!,
@@ -546,9 +589,12 @@ class JellyfinExtension :
         trackEndpoint.userCredentials = userCredentials
     }
 
-    // ================ Utils =================
+    // TODO(secozzi): implement
+    override suspend fun getCurrentUser(): User? {
+        return null
+    }
 
-    private val loginRequiredException = LoginRequiredException("jellyfin", "Jellyfin", ExtensionType.MUSIC)
+    // ================ Utils =================
 
     @Suppress("UnusedPrivateProperty")
     private fun randomString(length: Int = 16): String {
@@ -563,5 +609,8 @@ class JellyfinExtension :
 
     companion object {
         private const val ARTISTS_PER_TRACK = 5
+        private const val QUICK_SEARCH_LIMIT = 5
+        private const val CACHE_FOLDER_ID = "search_history"
+        private const val CACHE_DIRECTORY_NAME = "jellyfin"
     }
 }
