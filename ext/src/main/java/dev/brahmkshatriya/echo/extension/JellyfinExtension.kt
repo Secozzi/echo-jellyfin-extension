@@ -56,8 +56,6 @@ import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import java.io.File
-import java.util.logging.Level
-import java.util.logging.Logger
 
 @Suppress("TooManyFunctions")
 class JellyfinExtension :
@@ -499,7 +497,6 @@ class JellyfinExtension :
     )
 
     override suspend fun onLogin(data: Map<String, String?>): List<User> {
-        Logger.getLogger("SOMETHING-data").log(Level.INFO, data.toString())
         val serverUrl = data["server_url"]!!
 
         val body = buildJsonObject {
@@ -558,7 +555,6 @@ class JellyfinExtension :
 
     // TODO(secozzi): implement
     override suspend fun getCurrentUser(): User? {
-        Logger.getLogger("SOMETHING").log(Level.INFO, userCredentials.toString())
         return null
     }
 
