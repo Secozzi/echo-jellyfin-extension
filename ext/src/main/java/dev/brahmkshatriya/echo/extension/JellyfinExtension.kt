@@ -1,7 +1,5 @@
 package dev.brahmkshatriya.echo.extension
 
-import android.content.Context
-import android.os.Build
 import dev.brahmkshatriya.echo.common.clients.AlbumClient
 import dev.brahmkshatriya.echo.common.clients.ArtistClient
 import dev.brahmkshatriya.echo.common.clients.EditPlaylistCoverClient
@@ -30,7 +28,6 @@ import dev.brahmkshatriya.echo.common.models.StreamableVideo
 import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
-import dev.brahmkshatriya.echo.common.providers.ContextProvider
 import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.SettingList
 import dev.brahmkshatriya.echo.common.settings.Settings
@@ -59,12 +56,13 @@ import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import java.io.File
+import java.util.logging.Level
+import java.util.logging.Logger
 
 @Suppress("TooManyFunctions")
 class JellyfinExtension :
     AlbumClient,
     ArtistClient,
-    ContextProvider,
     EditPlaylistCoverClient,
     ExtensionClient,
     HomeFeedClient,
@@ -90,11 +88,6 @@ class JellyfinExtension :
 
     @Suppress("EmptyFunctionBlock")
     override suspend fun onExtensionSelected() { }
-
-    private lateinit var context: Context
-    override fun setContext(context: Context) {
-        this.context = context
-    }
 
     // ============== Home Feed ===============
 
@@ -241,10 +234,6 @@ class JellyfinExtension :
     override fun searchFeed(query: String?, tab: Tab?): PagedData<MediaItemsContainer> {
         require(userCredentials.userId.isNotEmpty()) { throw ClientException.LoginRequired() }
 
-        query?.let {
-            saveInHistory(it)
-        }
-
         return when (tab?.id) {
             "tracks" -> getTrackSearch(trackEndpoint, query)
             "albums" -> getAlbumSearch(albumEndpoint, query)
@@ -265,34 +254,11 @@ class JellyfinExtension :
     // ============= Quick Search =============
 
     override suspend fun quickSearch(query: String?): List<QuickSearchItem> {
-        return if (query.isNullOrBlank()) {
-            getHistory().map { QuickSearchItem.SearchQueryItem(it, true) }
-        } else {
-            emptyList()
-        }
+        return emptyList()
     }
 
-    override suspend fun deleteSearchHistory(query: QuickSearchItem.SearchQueryItem) {
-        val history = getHistory().toMutableList()
-        history.remove(query.query)
-        context.saveToCache(CACHE_FOLDER_ID, CACHE_DIRECTORY_NAME) { parcel ->
-            parcel.writeStringList(history)
-        }
-    }
-
-    private fun getHistory(): List<String> {
-        return context.getFromCache(CACHE_FOLDER_ID, CACHE_DIRECTORY_NAME) {
-            it.createStringArrayList()?.distinct()?.take(QUICK_SEARCH_LIMIT)
-        } ?: emptyList()
-    }
-
-    private fun saveInHistory(query: String) {
-        val history = getHistory().toMutableList()
-        history.add(0, query)
-        context.saveToCache(CACHE_FOLDER_ID, CACHE_DIRECTORY_NAME) { parcel ->
-            parcel.writeStringList(history)
-        }
-    }
+    @Suppress("EmptyFunctionBlock")
+    override suspend fun deleteSearchHistory(query: QuickSearchItem.SearchQueryItem) { }
 
     // =============== Library ================
 
@@ -533,6 +499,7 @@ class JellyfinExtension :
     )
 
     override suspend fun onLogin(data: Map<String, String?>): List<User> {
+        Logger.getLogger("SOMETHING-data").log(Level.INFO, data.toString())
         val serverUrl = data["server_url"]!!
 
         val body = buildJsonObject {
@@ -548,9 +515,9 @@ class JellyfinExtension :
             add(
                 "Authorization",
                 """MediaBrowser Client="Echo", """ +
-                    """Device="Android ${Build.VERSION.RELEASE}", """ +
+                    """Device="Echo Extension", """ +
                     """DeviceId="${randomString()}", """ +
-                    """Version="${BuildConfig.VERSION_NAME}"""",
+                    """Version="1.0.0"""",
             )
         }.build()
 
@@ -591,6 +558,7 @@ class JellyfinExtension :
 
     // TODO(secozzi): implement
     override suspend fun getCurrentUser(): User? {
+        Logger.getLogger("SOMETHING").log(Level.INFO, userCredentials.toString())
         return null
     }
 
@@ -609,8 +577,5 @@ class JellyfinExtension :
 
     companion object {
         private const val ARTISTS_PER_TRACK = 5
-        private const val QUICK_SEARCH_LIMIT = 5
-        private const val CACHE_FOLDER_ID = "search_history"
-        private const val CACHE_DIRECTORY_NAME = "jellyfin"
     }
 }

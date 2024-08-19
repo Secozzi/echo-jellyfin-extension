@@ -18,4 +18,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Jellyfin Extension"
 include(":app")
- 
+include(":ext")
