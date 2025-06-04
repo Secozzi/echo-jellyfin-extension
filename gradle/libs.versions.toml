@@ -1,0 +1,29 @@
+[versions]
+agp = "8.9.2"
+kotlin = "2.1.20"
+junit = "4.13.2"
+kotlinx-coroutines-test = "1.10.1"
+shadow = "8.3.0"
+echo = "17e4a23509"
+
+buildconfig = "5.6.5"
+ktlint-core = "1.5.0"
+spotless = "7.0.3"
+
+[libraries]
+junit = { module = "junit:junit", version.ref = "junit" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines-test" }
+echo = { module = "com.github.brahmkshatriya:echo", version.ref = "echo" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+java-library = { id = "java-library" }
+maven-publish = { id = "maven-publish" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }

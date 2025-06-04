@@ -11,12 +11,23 @@ class MockedSettings : Settings {
 
     override fun getStringSet(key: String): Set<String>? = null
 
-    override fun putBoolean(key: String, value: Boolean?) {}
+    override fun putBoolean(
+        key: String,
+        value: Boolean?,
+    ) {}
 
-    override fun putInt(key: String, value: Int?) {}
+    override fun putInt(
+        key: String,
+        value: Int?,
+    ) {}
 
-    override fun putString(key: String, value: String?) {}
+    override fun putString(
+        key: String,
+        value: String?,
+    ) {}
 
-    override fun putStringSet(key: String, value: Set<String>?) {}
-
+    override fun putStringSet(
+        key: String,
+        value: Set<String>?,
+    ) {}
 }

@@ -1,13 +1,12 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
 }
 
 dependencies {
     implementation(project(":ext"))
-    val libVersion: String by project
-    compileOnly("com.github.brahmkshatriya:echo:$libVersion")
-    compileOnly("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
+    compileOnly(libs.echo)
+    compileOnly(libs.kotlin.stdlib)
 }
 
 val extType: String by project
@@ -28,6 +27,22 @@ val gitHash = execute("git", "rev-parse", "HEAD").take(7)
 val gitCount = execute("git", "rev-list", "--count", "HEAD").toInt()
 val verCode = gitCount
 val verName = "v$gitHash"
+
+val outputDir = file("${layout.buildDirectory.asFile.get()}/generated/proguard")
+val generatedProguard = file("${outputDir}/generated-rules.pro")
+
+tasks.register("generateProguardRules") {
+    doLast {
+        outputDir.mkdirs()
+        generatedProguard.writeText(
+            "-dontobfuscate\n-keep,allowoptimization class dev.brahmkshatriya.echo.extension.$extClass"
+        )
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn("generateProguardRules")
+}
 
 tasks.register("uninstall") {
     android.run {
@@ -63,12 +78,13 @@ android {
     }
 
     buildTypes {
-        all {
+        release {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                generatedProguard.absolutePath,
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
