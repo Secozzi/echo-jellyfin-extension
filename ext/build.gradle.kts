@@ -19,7 +19,10 @@ kotlin {
     jvmToolchain(17)
 
     compilerOptions {
-        freeCompilerArgs.add("-Xcontext-parameters")
+        freeCompilerArgs.addAll(
+            "-Xcontext-parameters",
+            "-opt-in=kotlinx.serialization.ExperimentalSerializationApi",
+        )
     }
 }
 

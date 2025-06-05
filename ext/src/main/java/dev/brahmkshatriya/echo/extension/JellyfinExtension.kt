@@ -10,7 +10,9 @@ import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.Settings
 
-open class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClient {
+class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClient {
+
+    private val api by lazy { JellyfinApi() }
 
     // =============== Settings ===============
 
@@ -23,6 +25,11 @@ open class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFee
     override fun setSettings(settings: Settings) {
         setting = settings
     }
+
+    val deviceId: String
+        get() = setting.getString("device_id").orEmpty().ifBlank {
+            randomString().also { setting.putString("device_id", it) }
+        }
 
     // ================ Login =================
 
@@ -64,17 +71,17 @@ open class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFee
     ): List<User> {
         return when (LoginType.valueOf(key)) {
             LoginType.UserPass -> {
-                emptyList()
+                api.onLogin(data, deviceId)
             }
         }
     }
 
     override suspend fun onSetLoginUser(user: User?) {
-
+        api.setUser(user)
     }
 
     override suspend fun getCurrentUser(): User? {
-        return null
+        return api.getUser()
     }
 
     // ============== Home Feed ===============
