@@ -3,6 +3,7 @@ package dev.brahmkshatriya.echo.extension
 import dev.brahmkshatriya.echo.common.helpers.ClientException
 import dev.brahmkshatriya.echo.common.helpers.Page
 import dev.brahmkshatriya.echo.common.helpers.PagedData
+import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.User
@@ -122,6 +123,29 @@ class JellyfinApi {
 
     // ================ Albums ================
 
+    private fun buildAlbumUrl(
+        sortBy: String,
+        sortOrder: String,
+        startIndex: Int,
+        limit: Int,
+        extraParams: Map<String, String> = emptyMap()
+    ): HttpUrl {
+        checkAuth()
+
+        return getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addQueryParameter("IncludeItemTypes", "MusicAlbum")
+            addQueryParameter("Recursive", "true")
+            addQueryParameter("Limit", limit.toString())
+            addQueryParameter("StartIndex", startIndex.toString())
+            addQueryParameter("SortBy", sortBy)
+            addQueryParameter("SortOrder", sortOrder)
+            extraParams.forEach { (key, value) -> addQueryParameter(key, value) }
+        }.build()
+    }
+
     suspend fun getAlbumList(
         shelfTitle: String,
         sortBy: String,
@@ -129,19 +153,12 @@ class JellyfinApi {
         startIndex: Int = 0,
         limit: Int = 15,
     ): Shelf {
-        checkAuth()
-
-        val url = getUrlBuilder().apply {
-            addPathSegment("Users")
-            addPathSegment(userCredentials.userId)
-            addPathSegment("Items")
-            addQueryParameter("IncludeItemTypes", "MusicAlbum")
-            addQueryParameter("Limit", limit.toString())
-            addQueryParameter("Recursive", "true")
-            addQueryParameter("SortBy", sortBy)
-            addQueryParameter("SortOrder", sortOrder)
-            addQueryParameter("StartIndex", startIndex.toString())
-        }.build()
+        val url = buildAlbumUrl(
+            sortBy = sortBy,
+            sortOrder = sortOrder,
+            startIndex = startIndex,
+            limit = limit,
+        )
 
         return getShelf<AlbumDto>(
             url = url,
@@ -151,7 +168,48 @@ class JellyfinApi {
         )
     }
 
+    fun getAlbumSearch(
+        query: String,
+        startIndex: Int = 0,
+        limit: Int = 50,
+    ): PagedData<Shelf> {
+        val url = buildAlbumUrl(
+            sortBy = "DateCreated,SortName",
+            sortOrder = "Descending",
+            startIndex = startIndex,
+            limit = limit,
+            extraParams = mapOf(
+                "SearchTerm" to query,
+            ),
+        )
+
+        return getContinuousData<Shelf, AlbumDto>(url, limit, AlbumDto.serializer()) { it.toShelf() }
+    }
+
     // =============== Artists ================
+
+    private fun buildArtistUrl(
+        sortBy: String,
+        sortOrder: String,
+        startIndex: Int,
+        limit: Int,
+        extraParams: Map<String, String> = emptyMap()
+    ): HttpUrl {
+        checkAuth()
+
+        return getUrlBuilder().apply {
+            addPathSegment("Artists")
+            addPathSegment("AlbumArtists")
+            addQueryParameter("ImageTypeLimit", "1")
+            addQueryParameter("Recursive", "true")
+            addQueryParameter("Limit", limit.toString())
+            addQueryParameter("StartIndex", startIndex.toString())
+            addQueryParameter("SortBy", sortBy)
+            addQueryParameter("SortOrder", sortOrder)
+            addQueryParameter("UserId", userCredentials.userId)
+            extraParams.forEach { (key, value) -> addQueryParameter(key, value) }
+        }.build()
+    }
 
     suspend fun getArtistList(
         shelfTitle: String,
@@ -160,19 +218,12 @@ class JellyfinApi {
         startIndex: Int = 0,
         limit: Int = 15,
     ): Shelf {
-        checkAuth()
-
-        val url = getUrlBuilder().apply {
-            addPathSegment("Artists")
-            addPathSegment("AlbumArtists")
-            addQueryParameter("ImageTypeLimit", "1")
-            addQueryParameter("Limit", limit.toString())
-            addQueryParameter("Recursive", "true")
-            addQueryParameter("SortBy", sortBy)
-            addQueryParameter("SortOrder", sortOrder)
-            addQueryParameter("StartIndex", startIndex.toString())
-            addQueryParameter("UserId", userCredentials.userId)
-        }.build()
+        val url = buildTrackUrl(
+            sortBy = sortBy,
+            sortOrder = sortOrder,
+            startIndex = startIndex,
+            limit = limit,
+        )
 
         return getShelf<ArtistDto>(
             url = url,
@@ -182,7 +233,48 @@ class JellyfinApi {
         )
     }
 
+    fun getArtistSearch(
+        query: String,
+        startIndex: Int = 0,
+        limit: Int = 50,
+    ): PagedData<Shelf> {
+        val url = buildArtistUrl(
+            sortBy = "SortName,Name",
+            sortOrder = "Ascending",
+            startIndex = startIndex,
+            limit = limit,
+            extraParams = mapOf(
+                "SearchTerm" to query,
+            ),
+        )
+
+        return getContinuousData<Shelf, ArtistDto>(url, limit, ArtistDto.serializer()) { it.toShelf() }
+    }
+
     // ================ Tracks ================
+
+    private fun buildTrackUrl(
+        sortBy: String,
+        sortOrder: String,
+        startIndex: Int,
+        limit: Int,
+        extraParams: Map<String, String> = emptyMap()
+    ): HttpUrl {
+        checkAuth()
+
+        return getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addQueryParameter("IncludeItemTypes", "Audio")
+            addQueryParameter("Recursive", "true")
+            addQueryParameter("Limit", limit.toString())
+            addQueryParameter("StartIndex", startIndex.toString())
+            addQueryParameter("SortBy", sortBy)
+            addQueryParameter("SortOrder", sortOrder)
+            extraParams.forEach { (key, value) -> addQueryParameter(key, value) }
+        }.build()
+    }
 
     suspend fun getTrackList(
         shelfTitle: String,
@@ -191,19 +283,12 @@ class JellyfinApi {
         startIndex: Int = 0,
         limit: Int = 15,
     ): Shelf {
-        checkAuth()
-
-        val url = getUrlBuilder().apply {
-            addPathSegment("Users")
-            addPathSegment(userCredentials.userId)
-            addPathSegment("Items")
-            addQueryParameter("IncludeItemTypes", "Audio")
-            addQueryParameter("Limit", limit.toString())
-            addQueryParameter("Recursive", "true")
-            addQueryParameter("SortBy", sortBy)
-            addQueryParameter("SortOrder", sortOrder)
-            addQueryParameter("StartIndex", startIndex.toString())
-        }.build()
+        val url = buildTrackUrl(
+            sortBy = sortBy,
+            sortOrder = sortOrder,
+            startIndex = startIndex,
+            limit = limit,
+        )
 
         return getShelf<TrackDto>(
             url = url,
@@ -211,6 +296,24 @@ class JellyfinApi {
             limit = limit,
             serializer = TrackDto.serializer(),
         )
+    }
+
+    fun getTrackSearch(
+        query: String,
+        startIndex: Int = 0,
+        limit: Int = 50,
+    ): PagedData<Shelf> {
+        val url = buildTrackUrl(
+            sortBy = "PlayCount,SortName",
+            sortOrder = "Descending",
+            startIndex = startIndex,
+            limit = limit,
+            extraParams = mapOf(
+                "SearchTerm" to query,
+            ),
+        )
+
+        return getContinuousData<Shelf, TrackDto>(url, limit, TrackDto.serializer()) { it.toShelf() }
     }
 
     // =============== Helpers ================
@@ -225,8 +328,22 @@ class JellyfinApi {
 
         val items = data.items.map { it.toMediaItem(userCredentials.serverUrl) }
         val hasMore = (data.startIndex + limit) < data.totalRecordCount
+        val more = getContinuousData<EchoMediaItem, T>(url, limit, serializer) { it }.takeIf { hasMore }
 
-        val more = PagedData.Continuous { continuation ->
+        return Shelf.Lists.Items(
+            title = shelfTitle,
+            list = items,
+            more = more,
+        )
+    }
+
+    fun <R: Any, T: MediaItem> getContinuousData(
+        url: HttpUrl,
+        limit: Int,
+        serializer: KSerializer<T>,
+        transform: (EchoMediaItem) -> R,
+    ): PagedData.Continuous<R> {
+        return PagedData.Continuous { continuation ->
             val newStartIndex = continuation?.toInt() ?: 0
             val newUrl = url.newBuilder()
                 .setQueryParameter("StartIndex", newStartIndex.toString())
@@ -238,16 +355,10 @@ class JellyfinApi {
                 ?.toString()
 
             Page(
-                data = newData.items.map { it.toMediaItem(userCredentials.serverUrl) },
+                data = newData.items.map { transform(it.toMediaItem(userCredentials.serverUrl)) },
                 continuation = newContinuation,
             )
-        }.takeIf { hasMore }
-
-        return Shelf.Lists.Items(
-            title = shelfTitle,
-            list = items,
-            more = more,
-        )
+        }
     }
 
     // ================ Utils =================

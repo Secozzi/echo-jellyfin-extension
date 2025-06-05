@@ -3,7 +3,9 @@ package dev.brahmkshatriya.echo.extension
 import dev.brahmkshatriya.echo.common.clients.ExtensionClient
 import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
 import dev.brahmkshatriya.echo.common.clients.LoginClient
+import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
+import dev.brahmkshatriya.echo.common.models.QuickSearchItem
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.User
@@ -11,7 +13,7 @@ import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.Settings
 import dev.brahmkshatriya.echo.extension.tabs.createHomeFeed
 
-class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClient {
+class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClient, SearchFeedClient {
 
     val api by lazy { JellyfinApi() }
 
@@ -28,8 +30,8 @@ class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClie
     }
 
     val deviceId: String
-        get() = setting.getString("device_id").orEmpty().ifBlank {
-            randomString().also { setting.putString("device_id", it) }
+        get() = setting.getString(SETTINGS_DEVICE_ID_KEY).orEmpty().ifBlank {
+            randomString().also { setting.putString(SETTINGS_DEVICE_ID_KEY, it) }
         }
 
     // ================ Login =================
@@ -93,5 +95,60 @@ class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClie
 
     override fun getHomeFeed(tab: Tab?): PagedData<Shelf> {
         return createHomeFeed()
+    }
+
+    // ================ Search ================
+
+    private var searchHistory: List<String>
+        get() = setting.getString(SETTINGS_HISTORY_KEY)
+            ?.split(",")?.distinct()?.filter(String::isNotBlank)?.take(5)
+            ?: emptyList()
+        set(value) = setting.putString(SETTINGS_HISTORY_KEY, value.joinToString(","))
+
+    private fun saveQueryToHistory(query: String) {
+        val history = searchHistory.toMutableList()
+        history.add(0, query)
+        searchHistory = history
+    }
+
+    override suspend fun quickSearch(query: String): List<QuickSearchItem> {
+        return if (query.isBlank()) {
+            searchHistory.map { QuickSearchItem.Query(it, true) }
+        } else {
+            emptyList()
+        }
+    }
+
+    override suspend fun deleteQuickSearch(item: QuickSearchItem) {
+        searchHistory -= item.title
+    }
+
+    override suspend fun searchTabs(query: String): List<Tab> {
+        return listOf(
+            Tab("tracks", "Tracks"),
+            Tab("albums", "Albums"),
+            Tab("artists", "Artists"),
+        )
+    }
+
+    override fun searchFeed(
+        query: String,
+        tab: Tab?,
+    ): PagedData<Shelf> {
+        saveQueryToHistory(query)
+
+        return when (tab?.id) {
+            "tracks" -> api.getTrackSearch(query)
+            "albums" -> api.getAlbumSearch(query)
+            "artists" -> api.getArtistSearch(query)
+            else -> throw IllegalArgumentException("Invalid search tab")
+        }
+    }
+
+    // ================ Utils =================
+
+    companion object {
+        const val SETTINGS_DEVICE_ID_KEY = "device_id"
+        const val SETTINGS_HISTORY_KEY = "search_history"
     }
 }
