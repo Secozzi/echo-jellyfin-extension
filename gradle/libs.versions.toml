@@ -7,7 +7,7 @@ shadow = "8.3.0"
 echo = "17e4a23509"
 
 buildconfig = "5.6.5"
-ktlint-core = "1.5.0"
+ktlint-core = "1.6.0"
 spotless = "7.0.3"
 
 [libraries]

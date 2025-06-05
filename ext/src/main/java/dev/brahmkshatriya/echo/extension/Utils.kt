@@ -1,6 +1,10 @@
 package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.helpers.ContinuationCallback.Companion.await
+import dev.brahmkshatriya.echo.common.models.ImageHolder
+import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.json.JsonNamingStrategy
 import okhttp3.CacheControl
@@ -31,6 +35,14 @@ fun randomString(length: Int = 16): String {
             append(charPool.random())
         }
     }
+}
+
+fun getImageUrl(serverUrl: String, id: String): ImageHolder? {
+    return "$serverUrl/Items/$id/Images/Primary".toImageHolder()
+}
+
+suspend fun <T> withIO(block: suspend () -> T): T {
+    return withContext(Dispatchers.IO) { block() }
 }
 
 private val DEFAULT_CACHE_CONTROL = CacheControl.Builder().maxAge(10, MINUTES).build()

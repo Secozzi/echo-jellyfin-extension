@@ -1,16 +1,26 @@
 package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.helpers.ClientException
+import dev.brahmkshatriya.echo.common.helpers.Page
+import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
+import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.User
+import dev.brahmkshatriya.echo.extension.dto.AlbumDto
+import dev.brahmkshatriya.echo.extension.dto.ArtistDto
+import dev.brahmkshatriya.echo.extension.dto.ItemListDto
 import dev.brahmkshatriya.echo.extension.dto.LoginDto
+import dev.brahmkshatriya.echo.extension.dto.MediaItem
+import dev.brahmkshatriya.echo.extension.dto.TrackDto
 import extension.ext.BuildConfig
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.put
 import okhttp3.Headers
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -110,7 +120,141 @@ class JellyfinApi {
         )
     }
 
+    // ================ Albums ================
+
+    suspend fun getAlbumList(
+        shelfTitle: String,
+        sortBy: String,
+        sortOrder: String = "Descending",
+        startIndex: Int = 0,
+        limit: Int = 15,
+    ): Shelf {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addQueryParameter("IncludeItemTypes", "MusicAlbum")
+            addQueryParameter("Limit", limit.toString())
+            addQueryParameter("Recursive", "true")
+            addQueryParameter("SortBy", sortBy)
+            addQueryParameter("SortOrder", sortOrder)
+            addQueryParameter("StartIndex", startIndex.toString())
+        }.build()
+
+        return getShelf<AlbumDto>(
+            url = url,
+            shelfTitle = shelfTitle,
+            limit = limit,
+            serializer = AlbumDto.serializer(),
+        )
+    }
+
+    // =============== Artists ================
+
+    suspend fun getArtistList(
+        shelfTitle: String,
+        sortBy: String,
+        sortOrder: String = "Descending",
+        startIndex: Int = 0,
+        limit: Int = 15,
+    ): Shelf {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Artists")
+            addPathSegment("AlbumArtists")
+            addQueryParameter("ImageTypeLimit", "1")
+            addQueryParameter("Limit", limit.toString())
+            addQueryParameter("Recursive", "true")
+            addQueryParameter("SortBy", sortBy)
+            addQueryParameter("SortOrder", sortOrder)
+            addQueryParameter("StartIndex", startIndex.toString())
+            addQueryParameter("UserId", userCredentials.userId)
+        }.build()
+
+        return getShelf<ArtistDto>(
+            url = url,
+            shelfTitle = shelfTitle,
+            limit = limit,
+            serializer = ArtistDto.serializer(),
+        )
+    }
+
+    // ================ Tracks ================
+
+    suspend fun getTrackList(
+        shelfTitle: String,
+        sortBy: String,
+        sortOrder: String = "Descending",
+        startIndex: Int = 0,
+        limit: Int = 15,
+    ): Shelf {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addQueryParameter("IncludeItemTypes", "Audio")
+            addQueryParameter("Limit", limit.toString())
+            addQueryParameter("Recursive", "true")
+            addQueryParameter("SortBy", sortBy)
+            addQueryParameter("SortOrder", sortOrder)
+            addQueryParameter("StartIndex", startIndex.toString())
+        }.build()
+
+        return getShelf<TrackDto>(
+            url = url,
+            shelfTitle = shelfTitle,
+            limit = limit,
+            serializer = TrackDto.serializer(),
+        )
+    }
+
+    // =============== Helpers ================
+
+    suspend fun <T : MediaItem> getShelf(
+        url: HttpUrl,
+        shelfTitle: String,
+        limit: Int,
+        serializer: KSerializer<T>,
+    ): Shelf {
+        val data = client.get(url).parseAs<ItemListDto<T>>(ItemListDto.serializer(serializer))
+
+        val items = data.items.map { it.toMediaItem(userCredentials.serverUrl) }
+        val hasMore = (data.startIndex + limit) < data.totalRecordCount
+
+        val more = PagedData.Continuous { continuation ->
+            val newStartIndex = continuation?.toInt() ?: 0
+            val newUrl = url.newBuilder()
+                .setQueryParameter("StartIndex", newStartIndex.toString())
+                .build()
+
+            val newData = client.get(newUrl).parseAs(ItemListDto.serializer(serializer))
+            val newContinuation = (newStartIndex + limit)
+                .takeIf { it < newData.totalRecordCount }
+                ?.toString()
+
+            Page(
+                data = newData.items.map { it.toMediaItem(userCredentials.serverUrl) },
+                continuation = newContinuation,
+            )
+        }.takeIf { hasMore }
+
+        return Shelf.Lists.Items(
+            title = shelfTitle,
+            list = items,
+            more = more,
+        )
+    }
+
     // ================ Utils =================
+
+    private fun getUrlBuilder(): HttpUrl.Builder {
+        return userCredentials.serverUrl.toHttpUrl().newBuilder()
+    }
 
     fun checkAuth() {
         if (userCredentials.accessToken.isEmpty()) {
@@ -120,6 +264,10 @@ class JellyfinApi {
 
     private inline fun <reified T> Response.parseAs(): T {
         return json.decodeFromStream(body.byteStream())
+    }
+
+    private inline fun <reified T> Response.parseAs(serializer: KSerializer<T>): T {
+        return json.decodeFromStream(serializer, body.byteStream())
     }
 
     private inline fun <reified T> T.toRequestBody(): RequestBody {

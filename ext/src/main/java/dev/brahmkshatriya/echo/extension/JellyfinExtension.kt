@@ -9,10 +9,11 @@ import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.Settings
+import dev.brahmkshatriya.echo.extension.tabs.createHomeFeed
 
 class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClient {
 
-    private val api by lazy { JellyfinApi() }
+    val api by lazy { JellyfinApi() }
 
     // =============== Settings ===============
 
@@ -87,22 +88,10 @@ class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClie
     // ============== Home Feed ===============
 
     override suspend fun getHomeTabs(): List<Tab> {
-        return listOf(
-            Tab(
-                id = "home",
-                title = "Home",
-            ),
-        )
+        return emptyList()
     }
 
     override fun getHomeFeed(tab: Tab?): PagedData<Shelf> {
-        return PagedData.Single {
-            listOf(
-                Shelf.Lists.Items(
-                    title = "Most played",
-                    list = emptyList(),
-                ),
-            )
-        }
+        return createHomeFeed()
     }
 }
