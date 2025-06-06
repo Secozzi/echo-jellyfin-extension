@@ -1,6 +1,7 @@
 package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.helpers.ContinuationCallback.Companion.await
+import dev.brahmkshatriya.echo.common.models.Date
 import dev.brahmkshatriya.echo.common.models.ImageHolder
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -46,6 +47,12 @@ fun String?.getImageUrl(serverUrl: String, id: String): ImageHolder? {
             addQueryParameter("tag", tag)
         }.build().toString()
     }?.toImageHolder()
+}
+
+fun String.toDate(): Date {
+    return this.substringBefore("T").split("-").let { (year, month, day) ->
+        Date(year.toInt(), month.toIntOrNull(), day.toIntOrNull())
+    }
 }
 
 private val DEFAULT_CACHE_CONTROL = CacheControl.Builder().maxAge(10, MINUTES).build()

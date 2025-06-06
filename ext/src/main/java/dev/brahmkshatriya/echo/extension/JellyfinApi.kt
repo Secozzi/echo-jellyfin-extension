@@ -3,9 +3,11 @@ package dev.brahmkshatriya.echo.extension
 import dev.brahmkshatriya.echo.common.helpers.ClientException
 import dev.brahmkshatriya.echo.common.helpers.Page
 import dev.brahmkshatriya.echo.common.helpers.PagedData
+import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.Shelf
+import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.extension.dto.AlbumDto
 import dev.brahmkshatriya.echo.extension.dto.ArtistDto
@@ -14,6 +16,7 @@ import dev.brahmkshatriya.echo.extension.dto.LoginDto
 import dev.brahmkshatriya.echo.extension.dto.MediaItem
 import dev.brahmkshatriya.echo.extension.dto.PlaylistDto
 import dev.brahmkshatriya.echo.extension.dto.TrackDto
+import dev.brahmkshatriya.echo.extension.dto.toShelf
 import extension.ext.BuildConfig
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.encodeToString
@@ -190,7 +193,40 @@ class JellyfinApi {
             ),
         )
 
-        return getContinuousData<Shelf, AlbumDto>(url, limit, AlbumDto.serializer()) { it.toShelf() }
+        return getContinuousData<Shelf, AlbumDto>(url, limit, AlbumDto.serializer()) {
+            it.toShelf(userCredentials.serverUrl)
+        }
+    }
+
+    suspend fun getAlbum(album: Album): Album {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addPathSegment(album.id)
+        }.build()
+
+        return client.get(url).parseAs<AlbumDto>().toAlbum(userCredentials.serverUrl)
+    }
+
+    fun getAlbumTracks(album: Album, limit: Int = 200): PagedData<Track> {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addQueryParameter("IncludeItemTypes", "Audio")
+            addQueryParameter("ParentId", album.id)
+            addQueryParameter("SortBy", "ParentIndexNumber,IndexNumber,SortName")
+            addQueryParameter("Limit", limit.toString())
+        }.build()
+
+        return getContinuousData<Track, TrackDto>(url, limit, TrackDto.serializer()) {
+            it.toTrack(userCredentials.serverUrl)
+        }
     }
 
     // =============== Artists ================
@@ -260,7 +296,9 @@ class JellyfinApi {
             ),
         )
 
-        return getContinuousData<Shelf, ArtistDto>(url, limit, ArtistDto.serializer()) { it.toShelf() }
+        return getContinuousData<Shelf, ArtistDto>(url, limit, ArtistDto.serializer()) {
+            it.toShelf(userCredentials.serverUrl)
+        }
     }
 
     // ============== Playlists ===============
@@ -331,7 +369,9 @@ class JellyfinApi {
             ),
         )
 
-        return getContinuousData<Shelf, PlaylistDto>(url, limit, PlaylistDto.serializer()) { it.toShelf() }
+        return getContinuousData<Shelf, PlaylistDto>(url, limit, PlaylistDto.serializer()) {
+            it.toShelf(userCredentials.serverUrl)
+        }
     }
 
     // ================ Tracks ================
@@ -402,7 +442,9 @@ class JellyfinApi {
             ),
         )
 
-        return getContinuousData<Shelf, TrackDto>(url, limit, TrackDto.serializer()) { it.toShelf() }
+        return getContinuousData<Shelf, TrackDto>(url, limit, TrackDto.serializer()) {
+            it.toShelf(userCredentials.serverUrl)
+        }
     }
 
     // =============== Helpers ================
@@ -417,7 +459,9 @@ class JellyfinApi {
 
         val items = data.items.map { it.toMediaItem(userCredentials.serverUrl) }
         val hasMore = (data.startIndex + limit) < data.totalRecordCount
-        val more = getContinuousData<EchoMediaItem, T>(url, limit, serializer) { it }.takeIf { hasMore }
+        val more = getContinuousData<EchoMediaItem, T>(url, limit, serializer) {
+            it.toMediaItem(userCredentials.serverUrl)
+        }.takeIf { hasMore }
 
         return Shelf.Lists.Items(
             title = shelfTitle,
@@ -430,7 +474,7 @@ class JellyfinApi {
         url: HttpUrl,
         limit: Int,
         serializer: KSerializer<T>,
-        transform: (EchoMediaItem) -> R,
+        transform: (T) -> R,
     ): PagedData.Continuous<R> {
         return PagedData.Continuous { continuation ->
             val newStartIndex = continuation?.toInt() ?: 0
@@ -444,7 +488,7 @@ class JellyfinApi {
                 ?.toString()
 
             Page(
-                data = newData.items.map { transform(it.toMediaItem(userCredentials.serverUrl)) },
+                data = newData.items.map { transform(it) },
                 continuation = newContinuation,
             )
         }

@@ -1,14 +1,17 @@
 package dev.brahmkshatriya.echo.extension
 
+import dev.brahmkshatriya.echo.common.clients.AlbumClient
 import dev.brahmkshatriya.echo.common.clients.ExtensionClient
 import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
 import dev.brahmkshatriya.echo.common.clients.LibraryFeedClient
 import dev.brahmkshatriya.echo.common.clients.LoginClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
+import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Tab
+import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.Settings
@@ -20,6 +23,7 @@ class JellyfinExtension :
     LoginClient.CustomInput,
     HomeFeedClient,
     SearchFeedClient,
+    AlbumClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -176,6 +180,22 @@ class JellyfinExtension :
             "playlists" -> api.getPlaylistPage(sortBy = "SortName", sortOrder = "Ascending")
             "tracks" -> api.getTrackPage(sortBy = "SortName", sortOrder = "Ascending")
             else -> throw IllegalArgumentException("Invalid library tab")
+        }
+    }
+
+    // ================ Album =================
+
+    override suspend fun loadAlbum(album: Album): Album {
+        return api.getAlbum(album)
+    }
+
+    override fun loadTracks(album: Album): PagedData<Track> {
+        return api.getAlbumTracks(album)
+    }
+
+    override fun getShelves(album: Album): PagedData<Shelf> {
+        return PagedData.Single {
+            listOf()
         }
     }
 

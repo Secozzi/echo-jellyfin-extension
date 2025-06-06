@@ -1,10 +1,15 @@
 package dev.brahmkshatriya.echo.extension.dto
 
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
+import dev.brahmkshatriya.echo.common.models.Shelf
 import kotlinx.serialization.Serializable
 
 interface MediaItem {
     fun toMediaItem(serverUrl: String): EchoMediaItem
+}
+
+fun MediaItem.toShelf(serverUrl: String): Shelf {
+    return this.toMediaItem(serverUrl).toShelf()
 }
 
 @Serializable
