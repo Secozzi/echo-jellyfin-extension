@@ -89,4 +89,20 @@ suspend fun OkHttpClient.post(
     ).await()
 }
 
+suspend fun OkHttpClient.delete(
+    url: HttpUrl,
+    headers: Headers = DEFAULT_HEADERS,
+    body: RequestBody = DEFAULT_BODY,
+    cache: CacheControl = DEFAULT_CACHE_CONTROL,
+): Response {
+    return newCall(
+        Request.Builder()
+            .url(url)
+            .delete(body)
+            .headers(headers)
+            .cacheControl(cache)
+            .build(),
+    ).await()
+}
+
 const val TICKS_PER_MS = 10_000

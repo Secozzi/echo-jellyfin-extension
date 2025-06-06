@@ -2,6 +2,7 @@ package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.clients.AlbumClient
 import dev.brahmkshatriya.echo.common.clients.ArtistClient
+import dev.brahmkshatriya.echo.common.clients.ArtistFollowClient
 import dev.brahmkshatriya.echo.common.clients.ExtensionClient
 import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
 import dev.brahmkshatriya.echo.common.clients.LibraryFeedClient
@@ -27,6 +28,7 @@ class JellyfinExtension :
     SearchFeedClient,
     AlbumClient,
     ArtistClient,
+    ArtistFollowClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -233,6 +235,12 @@ class JellyfinExtension :
                 ),
             )
         }
+    }
+
+    // ============ Follow Artist =============
+
+    override suspend fun followArtist(artist: Artist, follow: Boolean) {
+        api.followArtist(artist, follow)
     }
 
     // ================ Utils =================

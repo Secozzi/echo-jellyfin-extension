@@ -363,6 +363,23 @@ class JellyfinApi {
         )
     }
 
+    // ============ Follow Artist =============
+
+    suspend fun followArtist(artist: Artist, follow: Boolean) {
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("FavoriteItems")
+            addPathSegment(artist.id)
+        }.build()
+
+        if (follow) {
+            client.post(url)
+        } else {
+            client.delete(url)
+        }
+    }
+
     // ============== Playlists ===============
 
     private fun buildPlaylistUrl(
