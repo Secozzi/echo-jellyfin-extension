@@ -22,7 +22,7 @@ data class ArtistDto(
         return Artist(
             id = this.id,
             name = this.name,
-            cover = getImageUrl(serverUrl, this.id),
+            cover = this.imageTags.primary.getImageUrl(serverUrl, this.id),
             description = this.overview,
         )
     }

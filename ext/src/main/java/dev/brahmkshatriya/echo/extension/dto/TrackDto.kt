@@ -23,8 +23,8 @@ data class TrackDto(
         return Track(
             id = this.id,
             title = this.name,
-            cover = this.imageTags.primary?.let { getImageUrl(serverUrl, this.id) }
-                ?: this.albumPrimaryImageTag?.let { getImageUrl(serverUrl, this.albumId) },
+            cover = this.imageTags.primary.getImageUrl(serverUrl, this.id)
+                ?: this.albumPrimaryImageTag.getImageUrl(serverUrl, this.albumId),
         )
     }
 }

@@ -12,6 +12,7 @@ import dev.brahmkshatriya.echo.extension.dto.ArtistDto
 import dev.brahmkshatriya.echo.extension.dto.ItemListDto
 import dev.brahmkshatriya.echo.extension.dto.LoginDto
 import dev.brahmkshatriya.echo.extension.dto.MediaItem
+import dev.brahmkshatriya.echo.extension.dto.PlaylistDto
 import dev.brahmkshatriya.echo.extension.dto.TrackDto
 import extension.ext.BuildConfig
 import kotlinx.serialization.KSerializer
@@ -128,7 +129,7 @@ class JellyfinApi {
         sortOrder: String,
         startIndex: Int,
         limit: Int,
-        extraParams: Map<String, String> = emptyMap()
+        extraParams: Map<String, String> = emptyMap(),
     ): HttpUrl {
         checkAuth()
 
@@ -142,11 +143,15 @@ class JellyfinApi {
             addQueryParameter("StartIndex", startIndex.toString())
             addQueryParameter("SortBy", sortBy)
             addQueryParameter("SortOrder", sortOrder)
-            extraParams.forEach { (key, value) -> addQueryParameter(key, value) }
+            extraParams.forEach { (key, value) ->
+                if (value.isNotBlank()) {
+                    addQueryParameter(key, value)
+                }
+            }
         }.build()
     }
 
-    suspend fun getAlbumList(
+    suspend fun getAlbumShelf(
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
@@ -168,14 +173,16 @@ class JellyfinApi {
         )
     }
 
-    fun getAlbumSearch(
-        query: String,
+    fun getAlbumPage(
+        query: String = "",
+        sortBy: String = "DateCreated,SortName",
+        sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 50,
     ): PagedData<Shelf> {
         val url = buildAlbumUrl(
-            sortBy = "DateCreated,SortName",
-            sortOrder = "Descending",
+            sortBy = sortBy,
+            sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
             extraParams = mapOf(
@@ -193,13 +200,12 @@ class JellyfinApi {
         sortOrder: String,
         startIndex: Int,
         limit: Int,
-        extraParams: Map<String, String> = emptyMap()
+        extraParams: Map<String, String> = emptyMap(),
     ): HttpUrl {
         checkAuth()
 
         return getUrlBuilder().apply {
             addPathSegment("Artists")
-            addPathSegment("AlbumArtists")
             addQueryParameter("ImageTypeLimit", "1")
             addQueryParameter("Recursive", "true")
             addQueryParameter("Limit", limit.toString())
@@ -207,18 +213,22 @@ class JellyfinApi {
             addQueryParameter("SortBy", sortBy)
             addQueryParameter("SortOrder", sortOrder)
             addQueryParameter("UserId", userCredentials.userId)
-            extraParams.forEach { (key, value) -> addQueryParameter(key, value) }
+            extraParams.forEach { (key, value) ->
+                if (value.isNotBlank()) {
+                    addQueryParameter(key, value)
+                }
+            }
         }.build()
     }
 
-    suspend fun getArtistList(
+    suspend fun getArtistShelf(
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 15,
     ): Shelf {
-        val url = buildTrackUrl(
+        val url = buildArtistUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
             startIndex = startIndex,
@@ -233,14 +243,16 @@ class JellyfinApi {
         )
     }
 
-    fun getArtistSearch(
-        query: String,
+    fun getArtistPage(
+        query: String = "",
+        sortBy: String = "SortName,Name",
+        sortOrder: String = "Ascending",
         startIndex: Int = 0,
         limit: Int = 50,
     ): PagedData<Shelf> {
         val url = buildArtistUrl(
-            sortBy = "SortName,Name",
-            sortOrder = "Ascending",
+            sortBy = sortBy,
+            sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
             extraParams = mapOf(
@@ -251,6 +263,77 @@ class JellyfinApi {
         return getContinuousData<Shelf, ArtistDto>(url, limit, ArtistDto.serializer()) { it.toShelf() }
     }
 
+    // ============== Playlists ===============
+
+    private fun buildPlaylistUrl(
+        sortBy: String,
+        sortOrder: String,
+        startIndex: Int,
+        limit: Int,
+        extraParams: Map<String, String> = emptyMap(),
+    ): HttpUrl {
+        checkAuth()
+
+        return getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addQueryParameter("IncludeItemTypes", "Playlist")
+            addQueryParameter("Recursive", "true")
+            addQueryParameter("Limit", limit.toString())
+            addQueryParameter("StartIndex", startIndex.toString())
+            addQueryParameter("SortBy", sortBy)
+            addQueryParameter("SortOrder", sortOrder)
+            extraParams.forEach { (key, value) ->
+                if (value.isNotBlank()) {
+                    addQueryParameter(key, value)
+                }
+            }
+        }.build()
+    }
+
+    suspend fun getPlaylistShelf(
+        shelfTitle: String,
+        sortBy: String,
+        sortOrder: String = "Descending",
+        startIndex: Int = 0,
+        limit: Int = 15,
+    ): Shelf {
+        val url = buildPlaylistUrl(
+            sortBy = sortBy,
+            sortOrder = sortOrder,
+            startIndex = startIndex,
+            limit = limit,
+        )
+
+        return getShelf<PlaylistDto>(
+            url = url,
+            shelfTitle = shelfTitle,
+            limit = limit,
+            serializer = PlaylistDto.serializer(),
+        )
+    }
+
+    fun getPlaylistPage(
+        query: String = "",
+        sortBy: String = "SortName",
+        sortOrder: String = "Ascending",
+        startIndex: Int = 0,
+        limit: Int = 50,
+    ): PagedData<Shelf> {
+        val url = buildPlaylistUrl(
+            sortBy = sortBy,
+            sortOrder = sortOrder,
+            startIndex = startIndex,
+            limit = limit,
+            extraParams = mapOf(
+                "SearchTerm" to query,
+            ),
+        )
+
+        return getContinuousData<Shelf, PlaylistDto>(url, limit, PlaylistDto.serializer()) { it.toShelf() }
+    }
+
     // ================ Tracks ================
 
     private fun buildTrackUrl(
@@ -258,7 +341,7 @@ class JellyfinApi {
         sortOrder: String,
         startIndex: Int,
         limit: Int,
-        extraParams: Map<String, String> = emptyMap()
+        extraParams: Map<String, String> = emptyMap(),
     ): HttpUrl {
         checkAuth()
 
@@ -272,11 +355,15 @@ class JellyfinApi {
             addQueryParameter("StartIndex", startIndex.toString())
             addQueryParameter("SortBy", sortBy)
             addQueryParameter("SortOrder", sortOrder)
-            extraParams.forEach { (key, value) -> addQueryParameter(key, value) }
+            extraParams.forEach { (key, value) ->
+                if (value.isNotBlank()) {
+                    addQueryParameter(key, value)
+                }
+            }
         }.build()
     }
 
-    suspend fun getTrackList(
+    suspend fun getTrackShelf(
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
@@ -298,14 +385,16 @@ class JellyfinApi {
         )
     }
 
-    fun getTrackSearch(
-        query: String,
+    fun getTrackPage(
+        query: String = "",
+        sortBy: String = "PlayCount,SortName",
+        sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 50,
     ): PagedData<Shelf> {
         val url = buildTrackUrl(
-            sortBy = "PlayCount,SortName",
-            sortOrder = "Descending",
+            sortBy = sortBy,
+            sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
             extraParams = mapOf(
@@ -337,7 +426,7 @@ class JellyfinApi {
         )
     }
 
-    fun <R: Any, T: MediaItem> getContinuousData(
+    fun <R : Any, T : MediaItem> getContinuousData(
         url: HttpUrl,
         limit: Int,
         serializer: KSerializer<T>,

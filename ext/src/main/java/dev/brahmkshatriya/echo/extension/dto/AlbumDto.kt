@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 data class AlbumDto(
     val id: String,
     val name: String,
+    val imageTags: ImageTagDto,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
         return EchoMediaItem.Lists.AlbumItem(
@@ -20,7 +21,7 @@ data class AlbumDto(
         return Album(
             id = this.id,
             title = this.name,
-            cover = getImageUrl(serverUrl, this.id),
+            cover = this.imageTags.primary.getImageUrl(serverUrl, this.id),
         )
     }
 }

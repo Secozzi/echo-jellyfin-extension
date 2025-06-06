@@ -3,14 +3,13 @@ package dev.brahmkshatriya.echo.extension
 import dev.brahmkshatriya.echo.common.helpers.ContinuationCallback.Companion.await
 import dev.brahmkshatriya.echo.common.models.ImageHolder
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.json.JsonNamingStrategy
 import okhttp3.CacheControl
 import okhttp3.FormBody
 import okhttp3.Headers
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
@@ -37,12 +36,16 @@ fun randomString(length: Int = 16): String {
     }
 }
 
-fun getImageUrl(serverUrl: String, id: String): ImageHolder? {
-    return "$serverUrl/Items/$id/Images/Primary".toImageHolder()
-}
-
-suspend fun <T> withIO(block: suspend () -> T): T {
-    return withContext(Dispatchers.IO) { block() }
+fun String?.getImageUrl(serverUrl: String, id: String): ImageHolder? {
+    return this?.let { tag ->
+        serverUrl.toHttpUrl().newBuilder().apply {
+            addPathSegment("Items")
+            addPathSegment(id)
+            addPathSegment("Images")
+            addPathSegment("Primary")
+            addQueryParameter("tag", tag)
+        }.build().toString()
+    }?.toImageHolder()
 }
 
 private val DEFAULT_CACHE_CONTROL = CacheControl.Builder().maxAge(10, MINUTES).build()
@@ -78,3 +81,5 @@ suspend fun OkHttpClient.post(
             .build(),
     ).await()
 }
+
+const val TICKS_PER_MS = 10_000

@@ -2,6 +2,7 @@ package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.clients.ExtensionClient
 import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
+import dev.brahmkshatriya.echo.common.clients.LibraryFeedClient
 import dev.brahmkshatriya.echo.common.clients.LoginClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
@@ -11,9 +12,15 @@ import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.Settings
+import dev.brahmkshatriya.echo.extension.tabs.createAllLibraryFeed
 import dev.brahmkshatriya.echo.extension.tabs.createHomeFeed
 
-class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClient, SearchFeedClient {
+class JellyfinExtension :
+    ExtensionClient,
+    LoginClient.CustomInput,
+    HomeFeedClient,
+    SearchFeedClient,
+    LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
 
@@ -125,9 +132,10 @@ class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClie
 
     override suspend fun searchTabs(query: String): List<Tab> {
         return listOf(
-            Tab("tracks", "Tracks"),
             Tab("albums", "Albums"),
             Tab("artists", "Artists"),
+            Tab("playlists", "Playlists"),
+            Tab("tracks", "Tracks"),
         )
     }
 
@@ -138,10 +146,36 @@ class JellyfinExtension : ExtensionClient, LoginClient.CustomInput, HomeFeedClie
         saveQueryToHistory(query)
 
         return when (tab?.id) {
-            "tracks" -> api.getTrackSearch(query)
-            "albums" -> api.getAlbumSearch(query)
-            "artists" -> api.getArtistSearch(query)
+            "albums" -> api.getAlbumPage(query)
+            "artists" -> api.getArtistPage(query)
+            "playlists" -> api.getPlaylistPage(query)
+            "tracks" -> api.getTrackPage(query)
             else -> throw IllegalArgumentException("Invalid search tab")
+        }
+    }
+
+    // =============== Library ================
+
+    override suspend fun getLibraryTabs(): List<Tab> {
+        return listOf(
+            Tab("all", "All"),
+            Tab("history", "History"),
+            Tab("albums", "Albums"),
+            Tab("artists", "Artists"),
+            Tab("playlists", "Playlists"),
+            Tab("tracks", "Tracks"),
+        )
+    }
+
+    override fun getLibraryFeed(tab: Tab?): PagedData<Shelf> {
+        return when (tab?.id) {
+            "all" -> createAllLibraryFeed()
+            "history" -> api.getTrackPage(sortBy = "DatePlayed,SortName", sortOrder = "Descending")
+            "albums" -> api.getAlbumPage(sortBy = "SortName", sortOrder = "Ascending")
+            "artists" -> api.getArtistPage(sortBy = "SortName", sortOrder = "Ascending")
+            "playlists" -> api.getPlaylistPage(sortBy = "SortName", sortOrder = "Ascending")
+            "tracks" -> api.getTrackPage(sortBy = "SortName", sortOrder = "Ascending")
+            else -> throw IllegalArgumentException("Invalid library tab")
         }
     }
 
