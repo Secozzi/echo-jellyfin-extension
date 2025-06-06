@@ -37,13 +37,13 @@ fun randomString(length: Int = 16): String {
     }
 }
 
-fun String?.getImageUrl(serverUrl: String, id: String): ImageHolder? {
+fun String?.getImageUrl(serverUrl: String, id: String, name: String = "Primary"): ImageHolder? {
     return this?.let { tag ->
         serverUrl.toHttpUrl().newBuilder().apply {
             addPathSegment("Items")
             addPathSegment(id)
             addPathSegment("Images")
-            addPathSegment("Primary")
+            addPathSegment(name)
             addQueryParameter("tag", tag)
         }.build().toString()
     }?.toImageHolder()

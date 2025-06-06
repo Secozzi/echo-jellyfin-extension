@@ -1,6 +1,7 @@
 package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.clients.AlbumClient
+import dev.brahmkshatriya.echo.common.clients.ArtistClient
 import dev.brahmkshatriya.echo.common.clients.ExtensionClient
 import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
 import dev.brahmkshatriya.echo.common.clients.LibraryFeedClient
@@ -8,6 +9,7 @@ import dev.brahmkshatriya.echo.common.clients.LoginClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
+import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Tab
@@ -24,6 +26,7 @@ class JellyfinExtension :
     HomeFeedClient,
     SearchFeedClient,
     AlbumClient,
+    ArtistClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -195,7 +198,40 @@ class JellyfinExtension :
 
     override fun getShelves(album: Album): PagedData<Shelf> {
         return PagedData.Single {
-            listOf()
+            listOfNotNull(
+                album.artists.firstOrNull()?.let {
+                    api.getArtistAlbums(
+                        artist = it,
+                        shelfTitle = "More from this artist",
+                        sortBy = "SortName",
+                        sortOrder = "Descending",
+                    )
+                },
+            )
+        }
+    }
+
+    // ================ Artist ================
+
+    override suspend fun loadArtist(artist: Artist): Artist {
+        return api.getArtist(artist)
+    }
+
+    override fun getShelves(artist: Artist): PagedData<Shelf> {
+        return PagedData.Single {
+            listOf(
+                api.getArtistAlbums(
+                    artist = artist,
+                    shelfTitle = "Recent releases",
+                    sortBy = "ProductionYear,PremiereDate,SortName",
+                    sortOrder = "Descending",
+                    limit = 15,
+                ),
+                api.getSimilarArtists(
+                    artist = artist,
+                    shelfTitle = "Related artists",
+                ),
+            )
         }
     }
 

@@ -4,6 +4,7 @@ import dev.brahmkshatriya.echo.common.helpers.ClientException
 import dev.brahmkshatriya.echo.common.helpers.Page
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
+import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.Shelf
@@ -299,6 +300,67 @@ class JellyfinApi {
         return getContinuousData<Shelf, ArtistDto>(url, limit, ArtistDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
         }
+    }
+
+    suspend fun getArtist(artist: Artist): Artist {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addPathSegment(artist.id)
+        }.build()
+
+        return client.get(url).parseAs<ArtistDto>().toArtist(userCredentials.serverUrl)
+    }
+
+    suspend fun getArtistAlbums(
+        artist: Artist,
+        shelfTitle: String,
+        sortBy: String,
+        sortOrder: String = "Descending",
+        startIndex: Int = 0,
+        limit: Int = 200,
+    ): Shelf {
+        val url = buildAlbumUrl(
+            sortBy = sortBy,
+            sortOrder = sortOrder,
+            startIndex = startIndex,
+            limit = limit,
+            extraParams = mapOf(
+                "AlbumArtistIds" to artist.id,
+            ),
+        )
+
+        return getShelf<AlbumDto>(
+            url = url,
+            shelfTitle = shelfTitle,
+            limit = limit,
+            serializer = AlbumDto.serializer(),
+        )
+    }
+
+    suspend fun getSimilarArtists(
+        artist: Artist,
+        shelfTitle: String,
+        limit: Int = 10,
+    ): Shelf {
+        val url = getUrlBuilder().apply {
+            addPathSegment("Artists")
+            addPathSegment(artist.id)
+            addPathSegment("Similar")
+            addQueryParameter("Limit", limit.toString())
+        }.build()
+
+        val data = client.get(url).parseAs<ItemListDto<ArtistDto>>()
+        val items = data.items.map { it.toMediaItem(userCredentials.serverUrl) }
+
+        return Shelf.Lists.Items(
+            title = shelfTitle,
+            list = items,
+            more = null,
+        )
     }
 
     // ============== Playlists ===============
