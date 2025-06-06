@@ -7,6 +7,7 @@ import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
+import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
@@ -247,6 +248,7 @@ class JellyfinApi {
 
         return getUrlBuilder().apply {
             addPathSegment("Artists")
+            addPathSegment("AlbumArtists")
             addQueryParameter("ImageTypeLimit", "1")
             addQueryParameter("Recursive", "true")
             addQueryParameter("Limit", limit.toString())
@@ -462,6 +464,37 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, PlaylistDto>(url, limit, PlaylistDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
+        }
+    }
+
+    suspend fun getPlaylist(playlist: Playlist): Playlist {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addPathSegment(playlist.id)
+        }.build()
+
+        return client.get(url).parseAs<PlaylistDto>().toPlaylist(userCredentials.serverUrl)
+    }
+
+    fun getPlaylistTracks(playlist: Playlist, limit: Int = 200): PagedData<Track> {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Playlists")
+            addPathSegment(playlist.id)
+            addPathSegment("Items")
+            addQueryParameter("IncludeItemTypes", "Audio")
+            addQueryParameter("SortBy", "ParentIndexNumber,IndexNumber,SortName")
+            addQueryParameter("Limit", limit.toString())
+            addQueryParameter("UserId", userCredentials.userId)
+        }.build()
+
+        return getContinuousData<Track, TrackDto>(url, limit, TrackDto.serializer()) {
+            it.toTrack(userCredentials.serverUrl)
         }
     }
 

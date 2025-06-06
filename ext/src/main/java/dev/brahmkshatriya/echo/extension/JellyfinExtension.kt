@@ -7,10 +7,12 @@ import dev.brahmkshatriya.echo.common.clients.ExtensionClient
 import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
 import dev.brahmkshatriya.echo.common.clients.LibraryFeedClient
 import dev.brahmkshatriya.echo.common.clients.LoginClient
+import dev.brahmkshatriya.echo.common.clients.PlaylistClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
+import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Tab
@@ -30,6 +32,7 @@ class JellyfinExtension :
     AlbumClient,
     ArtistClient,
     ArtistFollowClient,
+    PlaylistClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -244,6 +247,20 @@ class JellyfinExtension :
 
     override suspend fun followArtist(artist: Artist, follow: Boolean) {
         api.followArtist(artist, follow)
+    }
+
+    // =============== Playlist ===============
+
+    override suspend fun loadPlaylist(playlist: Playlist): Playlist {
+        return api.getPlaylist(playlist)
+    }
+
+    override fun loadTracks(playlist: Playlist): PagedData<Track> {
+        return api.getPlaylistTracks(playlist)
+    }
+
+    override fun getShelves(playlist: Playlist): PagedData<Shelf> {
+        return PagedData.Single { emptyList() }
     }
 
     // ================ Utils =================
