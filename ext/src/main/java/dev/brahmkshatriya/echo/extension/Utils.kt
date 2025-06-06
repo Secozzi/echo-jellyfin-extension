@@ -37,16 +37,20 @@ fun randomString(length: Int = 16): String {
     }
 }
 
-fun String?.getImageUrl(serverUrl: String, id: String, name: String = "Primary"): ImageHolder? {
-    return this?.let { tag ->
-        serverUrl.toHttpUrl().newBuilder().apply {
-            addPathSegment("Items")
-            addPathSegment(id)
-            addPathSegment("Images")
-            addPathSegment(name)
-            addQueryParameter("tag", tag)
-        }.build().toString()
-    }?.toImageHolder()
+fun String.getImageUrl(
+    serverUrl: String,
+    id: String,
+    name: String = "Primary",
+    index: Int? = null,
+): ImageHolder {
+    return serverUrl.toHttpUrl().newBuilder().apply {
+        addPathSegment("Items")
+        addPathSegment(id)
+        addPathSegment("Images")
+        addPathSegment(name)
+        index?.let { addPathSegment(it.toString()) }
+        addQueryParameter("tag", this@getImageUrl)
+    }.build().toString().toImageHolder(crop = true)
 }
 
 fun String.toDate(): Date {

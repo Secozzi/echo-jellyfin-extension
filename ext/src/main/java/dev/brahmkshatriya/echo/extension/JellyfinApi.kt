@@ -156,6 +156,7 @@ class JellyfinApi {
     }
 
     suspend fun getAlbumShelf(
+        query: String = "",
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
@@ -167,6 +168,9 @@ class JellyfinApi {
             sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
+            extraParams = mapOf(
+                "SearchTerm" to query,
+            ),
         )
 
         return getShelf<AlbumDto>(
@@ -259,6 +263,7 @@ class JellyfinApi {
     }
 
     suspend fun getArtistShelf(
+        query: String = "",
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
@@ -270,6 +275,9 @@ class JellyfinApi {
             sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
+            extraParams = mapOf(
+                "SearchTerm" to query,
+            ),
         )
 
         return getShelf<ArtistDto>(
@@ -410,6 +418,7 @@ class JellyfinApi {
     }
 
     suspend fun getPlaylistShelf(
+        query: String = "",
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
@@ -421,6 +430,9 @@ class JellyfinApi {
             sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
+            extraParams = mapOf(
+                "SearchTerm" to query,
+            ),
         )
 
         return getShelf<PlaylistDto>(
@@ -483,6 +495,7 @@ class JellyfinApi {
     }
 
     suspend fun getTrackShelf(
+        query: String = "",
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
@@ -494,6 +507,9 @@ class JellyfinApi {
             sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
+            extraParams = mapOf(
+                "SearchTerm" to query,
+            ),
         )
 
         return getShelf<TrackDto>(

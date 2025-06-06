@@ -19,6 +19,7 @@ import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.Settings
 import dev.brahmkshatriya.echo.extension.tabs.createAllLibraryFeed
+import dev.brahmkshatriya.echo.extension.tabs.createAllSearchFeed
 import dev.brahmkshatriya.echo.extension.tabs.createHomeFeed
 
 class JellyfinExtension :
@@ -141,6 +142,7 @@ class JellyfinExtension :
 
     override suspend fun searchTabs(query: String): List<Tab> {
         return listOf(
+            Tab("all", "All"),
             Tab("albums", "Albums"),
             Tab("artists", "Artists"),
             Tab("playlists", "Playlists"),
@@ -155,6 +157,7 @@ class JellyfinExtension :
         saveQueryToHistory(query)
 
         return when (tab?.id) {
+            "all" -> createAllSearchFeed(query)
             "albums" -> api.getAlbumPage(query)
             "artists" -> api.getArtistPage(query)
             "playlists" -> api.getPlaylistPage(query)

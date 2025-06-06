@@ -23,7 +23,7 @@ data class PlaylistDto(
 
     fun toPlaylist(serverUrl: String): Playlist {
         return Playlist(
-            cover = this.imageTags.primary.getImageUrl(serverUrl, this.id),
+            cover = this.imageTags.primary?.getImageUrl(serverUrl, this.id),
             description = this.overview,
             duration = this.runTimeTicks?.div(TICKS_PER_MS),
             id = this.id,

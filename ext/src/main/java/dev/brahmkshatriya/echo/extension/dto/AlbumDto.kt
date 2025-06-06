@@ -29,7 +29,7 @@ data class AlbumDto(
         return Album(
             id = this.id,
             title = this.name,
-            cover = this.imageTags.primary.getImageUrl(serverUrl, this.id),
+            cover = this.imageTags.primary?.getImageUrl(serverUrl, this.id),
             artists = this.artistItems.map { Artist(id = it.id, name = it.name) },
             tracks = this.childCount,
             duration = this.runTimeTicks?.div(TICKS_PER_MS),
