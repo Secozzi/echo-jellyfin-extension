@@ -13,6 +13,7 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.extension.dto.AlbumDto
 import dev.brahmkshatriya.echo.extension.dto.ArtistDto
+import dev.brahmkshatriya.echo.extension.dto.IdDto
 import dev.brahmkshatriya.echo.extension.dto.ItemListDto
 import dev.brahmkshatriya.echo.extension.dto.LoginDto
 import dev.brahmkshatriya.echo.extension.dto.MediaItem
@@ -23,9 +24,13 @@ import extension.ext.BuildConfig
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -35,6 +40,8 @@ import okhttp3.Protocol
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 class JellyfinApi {
     private val json = Json {
@@ -488,7 +495,6 @@ class JellyfinApi {
             addPathSegment(playlist.id)
             addPathSegment("Items")
             addQueryParameter("IncludeItemTypes", "Audio")
-            addQueryParameter("SortBy", "ParentIndexNumber,IndexNumber,SortName")
             addQueryParameter("Limit", limit.toString())
             addQueryParameter("UserId", userCredentials.userId)
         }.build()
@@ -496,6 +502,140 @@ class JellyfinApi {
         return getContinuousData<Track, TrackDto>(url, limit, TrackDto.serializer()) {
             it.toTrack(userCredentials.serverUrl)
         }
+    }
+
+    // ============ Edit Playlist =============
+
+    suspend fun getPlaylists(): List<Playlist> {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addQueryParameter("IncludeItemTypes", "Playlist")
+            addQueryParameter("Recursive", "true")
+            addQueryParameter("SortBy", "SortName")
+            addQueryParameter("SortOrder", "Ascending")
+        }.build()
+
+        return client.get(url).parseAs<ItemListDto<PlaylistDto>>().items.map {
+            it.toPlaylist(userCredentials.serverUrl)
+        }
+    }
+
+    suspend fun createPlaylist(name: String, description: String?): Playlist {
+        checkAuth()
+
+        val body = buildJsonObject {
+            put("MediaType", "Audio")
+            put("Name", name)
+            put("UserId", userCredentials.userId)
+        }.toRequestBody()
+
+        val playlistId = client.post(
+            url = getUrlBuilder().addPathSegment("Playlists").build(),
+            body = body,
+        ).parseAs<IdDto>().id
+
+        description?.let {
+            editPlaylistMetadata(playlistId, name, it)
+        }
+
+        return Playlist(
+            id = playlistId,
+            title = name,
+            isEditable = true,
+            description = description,
+        )
+    }
+
+    suspend fun deletePlaylist(playlist: Playlist) {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Items")
+            addPathSegment(playlist.id)
+        }.build()
+
+        client.delete(url)
+    }
+
+    suspend fun editPlaylistMetadata(id: String, name: String, description: String?) {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addPathSegment(id)
+        }.build()
+
+        val data = client.get(url)
+            .parseAs<Map<String, JsonElement>>()
+            .toMutableMap()
+            .apply {
+                this["Name"] = JsonPrimitive(name)
+                description?.let { this["Overview"] = JsonPrimitive(it) }
+            }
+
+        val updateUrl = getUrlBuilder().apply {
+            addPathSegment("Items")
+            addPathSegment(id)
+        }.build()
+
+        client.post(updateUrl, body = data.toRequestBody())
+    }
+
+    suspend fun addToPlaylist(playlist: Playlist, new: List<Track>) {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Playlists")
+            addPathSegment(playlist.id)
+            addPathSegment("Items")
+            addQueryParameter("Ids", new.joinToString(",") { it.id })
+            addQueryParameter("UserId", userCredentials.userId)
+        }.build()
+
+        client.post(url)
+    }
+
+    suspend fun removeFromPlaylist(
+        playlist: Playlist,
+        tracks: List<Track>,
+        indexes: List<Int>,
+    ) {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Playlists")
+            addPathSegment(playlist.id)
+            addPathSegment("Items")
+            addQueryParameter("EntryIds", indexes.joinToString(",") { tracks[it].id })
+        }.build()
+
+        client.delete(url)
+    }
+
+    suspend fun moveInPlaylist(
+        playlist: Playlist,
+        tracks: List<Track>,
+        fromIndex: Int,
+        toIndex: Int,
+    ) {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Playlists")
+            addPathSegment(playlist.id)
+            addPathSegment("Items")
+            addPathSegment(tracks[fromIndex].id)
+            addPathSegment("Move")
+            addPathSegment(toIndex.toString())
+        }.build()
+
+        client.post(url)
     }
 
     // ================ Tracks ================

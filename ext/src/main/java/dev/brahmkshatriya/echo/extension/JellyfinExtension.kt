@@ -8,6 +8,7 @@ import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
 import dev.brahmkshatriya.echo.common.clients.LibraryFeedClient
 import dev.brahmkshatriya.echo.common.clients.LoginClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistClient
+import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
@@ -33,6 +34,7 @@ class JellyfinExtension :
     ArtistClient,
     ArtistFollowClient,
     PlaylistClient,
+    PlaylistEditClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -261,6 +263,57 @@ class JellyfinExtension :
 
     override fun getShelves(playlist: Playlist): PagedData<Shelf> {
         return PagedData.Single { emptyList() }
+    }
+
+    // ============ Edit Playlist =============
+
+    override suspend fun listEditablePlaylists(track: Track?): List<Pair<Playlist, Boolean>> {
+        return api.getPlaylists().map { it to true }
+    }
+
+    override suspend fun createPlaylist(
+        title: String,
+        description: String?,
+    ): Playlist {
+        return api.createPlaylist(title, description)
+     }
+
+    override suspend fun deletePlaylist(playlist: Playlist) {
+        api.deletePlaylist(playlist)
+    }
+
+    override suspend fun editPlaylistMetadata(
+        playlist: Playlist,
+        title: String,
+        description: String?,
+    ) {
+        api.editPlaylistMetadata(playlist.id, title, description)
+    }
+
+    override suspend fun addTracksToPlaylist(
+        playlist: Playlist,
+        tracks: List<Track>,
+        index: Int,
+        new: List<Track>,
+    ) {
+        api.addToPlaylist(playlist, new)
+    }
+
+    override suspend fun removeTracksFromPlaylist(
+        playlist: Playlist,
+        tracks: List<Track>,
+        indexes: List<Int>,
+    ) {
+        api.removeFromPlaylist(playlist, tracks, indexes)
+    }
+
+    override suspend fun moveTrackInPlaylist(
+        playlist: Playlist,
+        tracks: List<Track>,
+        fromIndex: Int,
+        toIndex: Int,
+    ) {
+        api.moveInPlaylist(playlist, tracks, fromIndex, toIndex)
     }
 
     // ================ Utils =================

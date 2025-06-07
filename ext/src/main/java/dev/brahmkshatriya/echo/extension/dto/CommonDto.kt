@@ -18,3 +18,8 @@ data class ArtistItemDto(
 data class UserData(
     val isFavorite: Boolean? = null,
 )
+
+@Serializable
+data class IdDto(
+    val id: String,
+)
