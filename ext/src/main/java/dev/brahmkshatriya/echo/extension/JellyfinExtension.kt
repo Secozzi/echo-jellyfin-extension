@@ -10,15 +10,18 @@ import dev.brahmkshatriya.echo.common.clients.LoginClient
 import dev.brahmkshatriya.echo.common.clients.LyricsClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
+import dev.brahmkshatriya.echo.common.clients.RadioClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.clients.TrackClient
 import dev.brahmkshatriya.echo.common.clients.TrackLikeClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
+import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
+import dev.brahmkshatriya.echo.common.models.Radio
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Streamable
 import dev.brahmkshatriya.echo.common.models.Tab
@@ -43,6 +46,7 @@ class JellyfinExtension :
     TrackClient,
     TrackLikeClient,
     LyricsClient,
+    RadioClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -358,6 +362,35 @@ class JellyfinExtension :
 
     override suspend fun loadLyrics(lyrics: Lyrics): Lyrics {
         return lyrics
+    }
+
+    // ================ Radio =================
+
+    override fun loadTracks(radio: Radio): PagedData<Track> {
+        return api.getRadioPage(radio.id, radio.extras["type"]!!)
+    }
+
+    override suspend fun radio(
+        track: Track,
+        context: EchoMediaItem?,
+    ): Radio {
+        return Radio(id = track.id, title = "Instant Mix", extras = mapOf("type" to "Songs"))
+    }
+
+    override suspend fun radio(album: Album): Radio {
+        return Radio(id = album.id, title = "Instant Mix", extras = mapOf("type" to "Albums"))
+    }
+
+    override suspend fun radio(artist: Artist): Radio {
+        return Radio(id = artist.id, title = "Instant Mix", extras = mapOf("type" to "Artists"))
+    }
+
+    override suspend fun radio(user: User): Radio {
+        throw UnsupportedOperationException("Radio not supported for users")
+    }
+
+    override suspend fun radio(playlist: Playlist): Radio {
+        return Radio(id = playlist.id, title = "Instant Mix", extras = mapOf("type" to "Playlists"))
     }
 
     // ================ Utils =================

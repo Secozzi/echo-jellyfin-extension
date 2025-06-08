@@ -9,6 +9,7 @@ import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
+import dev.brahmkshatriya.echo.common.models.Radio
 import dev.brahmkshatriya.echo.common.models.Request.Companion.toRequest
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Streamable
@@ -810,6 +811,24 @@ class JellyfinApi {
                     lyrics = lyrics,
                 ),
             )
+        }
+    }
+
+    // ================ Radio =================
+
+    fun getRadioPage(itemId: String, type: String): PagedData<Track> {
+        return PagedData.Single {
+            val url = getUrlBuilder().apply {
+                addPathSegment(type)
+                addPathSegment(itemId)
+                addPathSegment("InstantMix")
+                addQueryParameter("UserId", userCredentials.userId)
+                addQueryParameter("Limit", "200")
+            }.build()
+
+            client.get(url).parseAs<ItemListDto<TrackDto>>().items.map {
+                it.toTrack(userCredentials.serverUrl)
+            }
         }
     }
 
