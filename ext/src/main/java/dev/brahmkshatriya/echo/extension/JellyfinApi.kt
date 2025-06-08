@@ -7,6 +7,7 @@ import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
+import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.Request.Companion.toRequest
 import dev.brahmkshatriya.echo.common.models.Shelf
@@ -19,6 +20,7 @@ import dev.brahmkshatriya.echo.extension.dto.ArtistDto
 import dev.brahmkshatriya.echo.extension.dto.IdDto
 import dev.brahmkshatriya.echo.extension.dto.ItemListDto
 import dev.brahmkshatriya.echo.extension.dto.LoginDto
+import dev.brahmkshatriya.echo.extension.dto.LyricListDto
 import dev.brahmkshatriya.echo.extension.dto.MediaItem
 import dev.brahmkshatriya.echo.extension.dto.PlaylistDto
 import dev.brahmkshatriya.echo.extension.dto.TrackDto
@@ -763,6 +765,52 @@ class JellyfinApi {
         checkAuth()
 
         favoriteItem(track.id, isLiked)
+    }
+
+    // ================ Lyrics ================
+
+    fun getLyrics(
+        track: Track,
+    ): PagedData<Lyrics> {
+        return PagedData.Single {
+            val url = getUrlBuilder().apply {
+                addPathSegment("Audio")
+                addPathSegment(track.id)
+                addPathSegment("Lyrics")
+            }.build()
+
+            val lyricList = client.get(url).parseAs<LyricListDto>().lyrics
+                ?.takeIf { it.isNotEmpty() }
+                ?: return@Single emptyList()
+
+            val lyrics = if (lyricList.first().start != null) {
+                val last = lyricList.last()
+
+                val items = lyricList.zipWithNext().map { (l1, l2) ->
+                    Lyrics.Item(
+                        text = l1.text,
+                        startTime = l1.start?.div(TICKS_PER_MS) ?: 0L,
+                        endTime = l2.start?.div(TICKS_PER_MS) ?: 0L,
+                    )
+                } + Lyrics.Item(
+                    text = last.text,
+                    startTime = last.start?.div(TICKS_PER_MS) ?: 0L,
+                    endTime = Long.MAX_VALUE,
+                )
+
+                Lyrics.Timed(items)
+            } else {
+                Lyrics.Simple(lyricList.joinToString("\n") { it.text })
+            }
+
+            listOf(
+                Lyrics(
+                    id = "lyrics",
+                    title = "Lyrics",
+                    lyrics = lyrics,
+                ),
+            )
+        }
     }
 
     // =============== Helpers ================

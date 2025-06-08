@@ -7,6 +7,7 @@ import dev.brahmkshatriya.echo.common.clients.ExtensionClient
 import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
 import dev.brahmkshatriya.echo.common.clients.LibraryFeedClient
 import dev.brahmkshatriya.echo.common.clients.LoginClient
+import dev.brahmkshatriya.echo.common.clients.LyricsClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
@@ -15,6 +16,7 @@ import dev.brahmkshatriya.echo.common.clients.TrackLikeClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
+import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
 import dev.brahmkshatriya.echo.common.models.Shelf
@@ -40,6 +42,7 @@ class JellyfinExtension :
     PlaylistEditClient,
     TrackClient,
     TrackLikeClient,
+    LyricsClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -342,6 +345,19 @@ class JellyfinExtension :
 
     override suspend fun likeTrack(track: Track, isLiked: Boolean) {
         api.likeTrack(track, isLiked)
+    }
+
+    // ================ Lyrics ================
+
+    override fun searchTrackLyrics(
+        clientId: String,
+        track: Track,
+    ): PagedData<Lyrics> {
+        return api.getLyrics(track)
+    }
+
+    override suspend fun loadLyrics(lyrics: Lyrics): Lyrics {
+        return lyrics
     }
 
     // ================ Utils =================
