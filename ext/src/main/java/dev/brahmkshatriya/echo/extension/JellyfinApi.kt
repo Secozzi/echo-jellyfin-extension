@@ -8,7 +8,10 @@ import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.Playlist
+import dev.brahmkshatriya.echo.common.models.Request.Companion.toRequest
 import dev.brahmkshatriya.echo.common.models.Shelf
+import dev.brahmkshatriya.echo.common.models.Streamable
+import dev.brahmkshatriya.echo.common.models.Streamable.Media.Companion.toMedia
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.extension.dto.AlbumDto
@@ -29,8 +32,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.putJsonObject
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -712,6 +713,56 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, TrackDto>(url, limit, TrackDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
+        }
+    }
+
+    suspend fun getTrack(track: Track): Track {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addPathSegment(track.id)
+        }.build()
+
+        return client.get(url).parseAs<TrackDto>().toTrack(userCredentials.serverUrl)
+    }
+
+    fun getStreamableMedia(streamable: Streamable): Streamable.Media {
+        val type = streamable.extras["type"]!!
+
+        return if (type == "source") {
+            val url = getUrlBuilder().apply {
+                addPathSegment("Audio")
+                addPathSegment(streamable.id)
+                addPathSegment("Universal")
+                addQueryParameter("UserId", userCredentials.userId)
+                addQueryParameter("ApiKey", userCredentials.accessToken)
+            }.build().toString()
+
+            Streamable.Source.Http(
+                request = url.toRequest(),
+                quality = streamable.quality,
+            ).toMedia()
+        } else {
+            // From https://github.com/jmshrv/finamp/blob/7b902e183a5117e846b2ed7c4a954b3800e21944/lib/services/music_player_background_task.dart#L738
+            val url = getUrlBuilder().apply {
+                addPathSegment("Audio")
+                addPathSegment(streamable.id)
+                addPathSegment("main.m3u8")
+                addQueryParameter("AudioCodec", "AAC")
+                addQueryParameter("AudioSampleRate", "44100")
+                addQueryParameter("MaxAudioBitDepth", "16")
+                addQueryParameter("AudioBitRate", type)
+                addQueryParameter("ApiKey", userCredentials.accessToken)
+            }.build().toString()
+
+            Streamable.Source.Http(
+                request = url.toRequest(),
+                type = Streamable.SourceType.HLS,
+                quality = streamable.quality,
+            ).toMedia()
         }
     }
 

@@ -17,6 +17,7 @@ data class ArtistItemDto(
 @Serializable
 data class UserData(
     val isFavorite: Boolean? = null,
+    val playCount: Long? = null,
 )
 
 @Serializable

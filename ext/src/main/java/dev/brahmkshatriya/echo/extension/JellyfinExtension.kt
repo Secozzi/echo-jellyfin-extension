@@ -10,12 +10,14 @@ import dev.brahmkshatriya.echo.common.clients.LoginClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
+import dev.brahmkshatriya.echo.common.clients.TrackClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
 import dev.brahmkshatriya.echo.common.models.Shelf
+import dev.brahmkshatriya.echo.common.models.Streamable
 import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
@@ -35,6 +37,7 @@ class JellyfinExtension :
     ArtistFollowClient,
     PlaylistClient,
     PlaylistEditClient,
+    TrackClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -276,7 +279,7 @@ class JellyfinExtension :
         description: String?,
     ): Playlist {
         return api.createPlaylist(title, description)
-     }
+    }
 
     override suspend fun deletePlaylist(playlist: Playlist) {
         api.deletePlaylist(playlist)
@@ -314,6 +317,23 @@ class JellyfinExtension :
         toIndex: Int,
     ) {
         api.moveInPlaylist(playlist, tracks, fromIndex, toIndex)
+    }
+
+    // ================ Track =================
+
+    override suspend fun loadTrack(track: Track): Track {
+        return api.getTrack(track)
+    }
+
+    override suspend fun loadStreamableMedia(
+        streamable: Streamable,
+        isDownload: Boolean,
+    ): Streamable.Media {
+        return api.getStreamableMedia(streamable)
+    }
+
+    override fun getShelves(track: Track): PagedData<Shelf> {
+        return PagedData.Single { emptyList() }
     }
 
     // ================ Utils =================
