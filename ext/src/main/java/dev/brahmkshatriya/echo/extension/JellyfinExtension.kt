@@ -11,6 +11,7 @@ import dev.brahmkshatriya.echo.common.clients.PlaylistClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.clients.TrackClient
+import dev.brahmkshatriya.echo.common.clients.TrackLikeClient
 import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
@@ -38,6 +39,7 @@ class JellyfinExtension :
     PlaylistClient,
     PlaylistEditClient,
     TrackClient,
+    TrackLikeClient,
     LibraryFeedClient {
 
     val api by lazy { JellyfinApi() }
@@ -334,6 +336,12 @@ class JellyfinExtension :
 
     override fun getShelves(track: Track): PagedData<Shelf> {
         return PagedData.Single { emptyList() }
+    }
+
+    // ============== Like Track ==============
+
+    override suspend fun likeTrack(track: Track, isLiked: Boolean) {
+        api.likeTrack(track, isLiked)
     }
 
     // ================ Utils =================

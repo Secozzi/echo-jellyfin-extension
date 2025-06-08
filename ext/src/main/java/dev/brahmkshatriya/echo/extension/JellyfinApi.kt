@@ -384,18 +384,9 @@ class JellyfinApi {
     // ============ Follow Artist =============
 
     suspend fun followArtist(artist: Artist, follow: Boolean) {
-        val url = getUrlBuilder().apply {
-            addPathSegment("Users")
-            addPathSegment(userCredentials.userId)
-            addPathSegment("FavoriteItems")
-            addPathSegment(artist.id)
-        }.build()
+        checkAuth()
 
-        if (follow) {
-            client.post(url)
-        } else {
-            client.delete(url)
-        }
+        favoriteItem(artist.id, follow)
     }
 
     // ============== Playlists ===============
@@ -766,7 +757,30 @@ class JellyfinApi {
         }
     }
 
+    // ============== Like Track ==============
+
+    suspend fun likeTrack(track: Track, isLiked: Boolean) {
+        checkAuth()
+
+        favoriteItem(track.id, isLiked)
+    }
+
     // =============== Helpers ================
+
+    suspend fun favoriteItem(itemId: String, isFavorite: Boolean) {
+        val url = getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("FavoriteItems")
+            addPathSegment(itemId)
+        }.build()
+
+        if (isFavorite) {
+            client.post(url)
+        } else {
+            client.delete(url)
+        }
+    }
 
     suspend fun <T : MediaItem> getShelf(
         url: HttpUrl,
