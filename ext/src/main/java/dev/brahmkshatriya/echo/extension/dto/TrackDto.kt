@@ -14,9 +14,9 @@ import kotlinx.serialization.Serializable
 data class TrackDto(
     val id: String,
     val name: String,
-    val albumArtists: List<ArtistItemDto>,
-    val album: String,
-    val albumId: String,
+    val albumArtists: List<ArtistItemDto>? = null,
+    val album: String? = null,
+    val albumId: String? = null,
     val albumPrimaryImageTag: String? = null,
     val imageTags: ImageTagDto,
     val runTimeTicks: Long? = null,
@@ -35,10 +35,10 @@ data class TrackDto(
         return Track(
             id = this.id,
             title = this.name,
-            artists = this.albumArtists.map { Artist(it.id, it.name) },
-            album = Album(albumId, album),
+            artists = this.albumArtists.orEmpty().map { Artist(it.id, it.name) },
+            album = album?.let { name -> albumId?.let { id -> Album(id, name) } },
             cover = this.imageTags.primary?.getImageUrl(serverUrl, this.id)
-                ?: this.albumPrimaryImageTag?.getImageUrl(serverUrl, this.albumId),
+                ?: this.albumPrimaryImageTag?.getImageUrl(serverUrl, this.albumId!!),
             duration = this.runTimeTicks?.div(TICKS_PER_MS),
             plays = this.userData.playCount,
             releaseDate = this.premiereDate?.takeUnless { it.startsWith("0001-01-01") }?.toDate(),

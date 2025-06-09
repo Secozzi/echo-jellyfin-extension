@@ -9,7 +9,6 @@ import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
-import dev.brahmkshatriya.echo.common.models.Radio
 import dev.brahmkshatriya.echo.common.models.Request.Companion.toRequest
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Streamable
@@ -27,6 +26,7 @@ import dev.brahmkshatriya.echo.extension.dto.PlaylistDto
 import dev.brahmkshatriya.echo.extension.dto.TrackDto
 import dev.brahmkshatriya.echo.extension.dto.toShelf
 import extension.ext.BuildConfig
+import kotlinx.coroutines.delay
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -46,6 +46,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import kotlin.collections.component1
 import kotlin.collections.component2
+import kotlin.time.Duration.Companion.seconds
 
 class JellyfinApi {
     private val json = Json {
@@ -102,7 +103,12 @@ class JellyfinApi {
             addPathSegment("AuthenticateByName")
         }.build()
 
-        val loginData = client.post(url, headers, body).parseAs<LoginDto>()
+        val loginResp = client.post(url, headers, body)
+        if (loginResp.code == 401) {
+            throw Exception("Invalid credentials")
+        }
+
+        val loginData = loginResp.parseAs<LoginDto>()
 
         val user = User(
             id = loginData.user.id,
@@ -168,22 +174,22 @@ class JellyfinApi {
     }
 
     suspend fun getAlbumShelf(
-        query: String = "",
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 15,
+        extraParams: Map<String, String> = emptyMap(),
     ): Shelf {
         val url = buildAlbumUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
-            extraParams = mapOf(
-                "SearchTerm" to query,
-            ),
+            extraParams = extraParams,
         )
+
+        delay(2.seconds)
 
         return getShelf<AlbumDto>(
             url = url,
@@ -276,22 +282,22 @@ class JellyfinApi {
     }
 
     suspend fun getArtistShelf(
-        query: String = "",
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 15,
+        extraParams: Map<String, String> = emptyMap(),
     ): Shelf {
         val url = buildArtistUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
-            extraParams = mapOf(
-                "SearchTerm" to query,
-            ),
+            extraParams = extraParams,
         )
+
+        delay(2.seconds)
 
         return getShelf<ArtistDto>(
             url = url,
@@ -422,22 +428,22 @@ class JellyfinApi {
     }
 
     suspend fun getPlaylistShelf(
-        query: String = "",
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 15,
+        extraParams: Map<String, String> = emptyMap(),
     ): Shelf {
         val url = buildPlaylistUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
-            extraParams = mapOf(
-                "SearchTerm" to query,
-            ),
+            extraParams = extraParams,
         )
+
+        delay(2.seconds)
 
         return getShelf<PlaylistDto>(
             url = url,
@@ -663,21 +669,19 @@ class JellyfinApi {
     }
 
     suspend fun getTrackShelf(
-        query: String = "",
         shelfTitle: String,
         sortBy: String,
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 15,
+        extraParams: Map<String, String> = emptyMap(),
     ): Shelf {
         val url = buildTrackUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
             startIndex = startIndex,
             limit = limit,
-            extraParams = mapOf(
-                "SearchTerm" to query,
-            ),
+            extraParams = extraParams,
         )
 
         return getShelf<TrackDto>(

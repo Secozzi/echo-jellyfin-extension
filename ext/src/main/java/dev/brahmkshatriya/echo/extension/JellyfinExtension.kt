@@ -31,23 +31,28 @@ import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.Settings
 import dev.brahmkshatriya.echo.extension.tabs.createAllLibraryFeed
 import dev.brahmkshatriya.echo.extension.tabs.createAllSearchFeed
+import dev.brahmkshatriya.echo.extension.tabs.createFavoriteLibraryFeed
 import dev.brahmkshatriya.echo.extension.tabs.createHomeFeed
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
 
 class JellyfinExtension :
-    ExtensionClient,
-    LoginClient.CustomInput,
-    HomeFeedClient,
-    SearchFeedClient,
     AlbumClient,
     ArtistClient,
     ArtistFollowClient,
+    ExtensionClient,
+    HomeFeedClient,
+    LibraryFeedClient,
+    LoginClient.CustomInput,
+    LyricsClient,
     PlaylistClient,
     PlaylistEditClient,
-    TrackClient,
-    TrackLikeClient,
-    LyricsClient,
     RadioClient,
-    LibraryFeedClient {
+    SearchFeedClient,
+    TrackClient,
+    TrackLikeClient {
 
     val api by lazy { JellyfinApi() }
 
@@ -189,6 +194,7 @@ class JellyfinExtension :
         return listOf(
             Tab("all", "All"),
             Tab("history", "History"),
+            Tab("favorites", "Favorites"),
             Tab("albums", "Albums"),
             Tab("artists", "Artists"),
             Tab("playlists", "Playlists"),
@@ -200,6 +206,7 @@ class JellyfinExtension :
         return when (tab?.id) {
             "all" -> createAllLibraryFeed()
             "history" -> api.getTrackPage(sortBy = "DatePlayed,SortName", sortOrder = "Descending")
+            "favorites" -> createFavoriteLibraryFeed()
             "albums" -> api.getAlbumPage(sortBy = "SortName", sortOrder = "Ascending")
             "artists" -> api.getArtistPage(sortBy = "SortName", sortOrder = "Ascending")
             "playlists" -> api.getPlaylistPage(sortBy = "SortName", sortOrder = "Ascending")
@@ -241,19 +248,34 @@ class JellyfinExtension :
 
     override fun getShelves(artist: Artist): PagedData<Shelf> {
         return PagedData.Single {
-            listOf(
-                api.getArtistAlbums(
-                    artist = artist,
-                    shelfTitle = "Recent releases",
-                    sortBy = "ProductionYear,PremiereDate,SortName",
-                    sortOrder = "Descending",
-                    limit = 15,
-                ),
-                api.getSimilarArtists(
-                    artist = artist,
-                    shelfTitle = "Related artists",
-                ),
-            )
+            withContext(Dispatchers.IO) {
+                listOf(
+                    async {
+                        api.getArtistAlbums(
+                            artist = artist,
+                            shelfTitle = "Discography",
+                            sortBy = "SortName",
+                            sortOrder = "Ascending",
+                            limit = 15,
+                        )
+                    },
+                    async {
+                        api.getArtistAlbums(
+                            artist = artist,
+                            shelfTitle = "Recent releases",
+                            sortBy = "ProductionYear,PremiereDate,SortName",
+                            sortOrder = "Descending",
+                            limit = 15,
+                        )
+                    },
+                    async {
+                        api.getSimilarArtists(
+                            artist = artist,
+                            shelfTitle = "Related artists",
+                        )
+                    },
+                ).awaitAll()
+            }
         }
     }
 
