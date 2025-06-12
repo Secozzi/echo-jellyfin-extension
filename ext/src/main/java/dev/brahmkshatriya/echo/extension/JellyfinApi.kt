@@ -26,7 +26,6 @@ import dev.brahmkshatriya.echo.extension.dto.PlaylistDto
 import dev.brahmkshatriya.echo.extension.dto.TrackDto
 import dev.brahmkshatriya.echo.extension.dto.toShelf
 import extension.ext.BuildConfig
-import kotlinx.coroutines.delay
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -189,8 +188,6 @@ class JellyfinApi {
             extraParams = extraParams,
         )
 
-        delay(2.seconds)
-
         return getShelf<AlbumDto>(
             url = url,
             shelfTitle = shelfTitle,
@@ -296,8 +293,6 @@ class JellyfinApi {
             limit = limit,
             extraParams = extraParams,
         )
-
-        delay(2.seconds)
 
         return getShelf<ArtistDto>(
             url = url,
@@ -442,8 +437,6 @@ class JellyfinApi {
             limit = limit,
             extraParams = extraParams,
         )
-
-        delay(2.seconds)
 
         return getShelf<PlaylistDto>(
             url = url,
