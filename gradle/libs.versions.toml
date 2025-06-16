@@ -4,7 +4,7 @@ kotlin = "2.1.20"
 junit = "4.13.2"
 kotlinx-coroutines-test = "1.10.1"
 shadow = "8.3.0"
-echo = "17e4a23509"
+echo = "70fe842000"
 
 buildconfig = "5.6.5"
 ktlint-core = "1.6.0"
