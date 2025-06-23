@@ -1,7 +1,8 @@
 package dev.brahmkshatriya.echo.extension.tabs
 
 import dev.brahmkshatriya.echo.common.helpers.PagedData
-import dev.brahmkshatriya.echo.common.models.Shelf
+import dev.brahmkshatriya.echo.common.models.Feed
+import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 import dev.brahmkshatriya.echo.extension.JellyfinExtension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -9,7 +10,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 
 context(ext: JellyfinExtension)
-fun createAllLibraryFeed(): PagedData<Shelf> {
+fun createAllLibraryFeed(): Feed {
     return PagedData.Single {
         withContext(Dispatchers.IO) {
             listOf(
@@ -43,11 +44,11 @@ fun createAllLibraryFeed(): PagedData<Shelf> {
                 },
             ).awaitAll()
         }
-    }
+    }.toFeed()
 }
 
 context(ext: JellyfinExtension)
-fun createFavoriteLibraryFeed(): PagedData<Shelf> {
+fun createFavoriteLibraryFeed(): Feed {
     return PagedData.Single {
         withContext(Dispatchers.IO) {
             listOf(
@@ -86,5 +87,5 @@ fun createFavoriteLibraryFeed(): PagedData<Shelf> {
                 },
             ).awaitAll()
         }
-    }
+    }.toFeed()
 }

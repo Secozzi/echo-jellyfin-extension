@@ -18,6 +18,7 @@ import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
+import dev.brahmkshatriya.echo.common.models.Feed
 import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
@@ -132,7 +133,7 @@ class JellyfinExtension :
         return emptyList()
     }
 
-    override fun getHomeFeed(tab: Tab?): PagedData<Shelf> {
+    override fun getHomeFeed(tab: Tab?): Feed {
         return createHomeFeed()
     }
 
@@ -175,7 +176,7 @@ class JellyfinExtension :
     override fun searchFeed(
         query: String,
         tab: Tab?,
-    ): PagedData<Shelf> {
+    ): Feed {
         saveQueryToHistory(query)
 
         return when (tab?.id) {
@@ -202,7 +203,7 @@ class JellyfinExtension :
         )
     }
 
-    override fun getLibraryFeed(tab: Tab?): PagedData<Shelf> {
+    override fun getLibraryFeed(tab: Tab?): Feed {
         return when (tab?.id) {
             "all" -> createAllLibraryFeed()
             "history" -> api.getTrackPage(sortBy = "DatePlayed,SortName", sortOrder = "Descending")
@@ -372,6 +373,22 @@ class JellyfinExtension :
     override suspend fun likeTrack(track: Track, isLiked: Boolean) {
         api.likeTrack(track, isLiked)
     }
+
+    // =============== Tracker ================
+
+    // override suspend fun onTrackChanged(details: TrackDetails?) {
+    //     println("onTrackChanged: $details")
+    // }
+    //
+    // override val markAsPlayedDuration = null
+    //
+    // override suspend fun onMarkAsPlayed(details: TrackDetails) {
+    //     println("onMarkAsPlayed: $details")
+    // }
+    //
+    // override suspend fun onPlayingStateChanged(details: TrackDetails?, isPlaying: Boolean) {
+    //     println("onPlayingStateChanged: $isPlaying - $details")
+    // }
 
     // ================ Lyrics ================
 

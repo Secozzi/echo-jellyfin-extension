@@ -1,7 +1,8 @@
 package dev.brahmkshatriya.echo.extension.tabs
 
 import dev.brahmkshatriya.echo.common.helpers.PagedData
-import dev.brahmkshatriya.echo.common.models.Shelf
+import dev.brahmkshatriya.echo.common.models.Feed
+import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 import dev.brahmkshatriya.echo.extension.JellyfinExtension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -9,7 +10,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 
 context(ext: JellyfinExtension)
-fun createHomeFeed(): PagedData<Shelf> {
+fun createHomeFeed(): Feed {
     return PagedData.Single {
         withContext(Dispatchers.IO) {
             listOf(
@@ -48,5 +49,5 @@ fun createHomeFeed(): PagedData<Shelf> {
                 },
             ).awaitAll()
         }
-    }
+    }.toFeed()
 }

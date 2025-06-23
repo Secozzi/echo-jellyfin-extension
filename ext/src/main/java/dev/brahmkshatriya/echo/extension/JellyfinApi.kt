@@ -6,6 +6,8 @@ import dev.brahmkshatriya.echo.common.helpers.PagedData
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
+import dev.brahmkshatriya.echo.common.models.Feed
+import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
@@ -45,7 +47,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import kotlin.collections.component1
 import kotlin.collections.component2
-import kotlin.time.Duration.Companion.seconds
 
 class JellyfinApi {
     private val json = Json {
@@ -202,7 +203,7 @@ class JellyfinApi {
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 50,
-    ): PagedData<Shelf> {
+    ): Feed {
         val url = buildAlbumUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
@@ -215,7 +216,7 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, AlbumDto>(url, limit, AlbumDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
-        }
+        }.toFeed()
     }
 
     suspend fun getAlbum(album: Album): Album {
@@ -308,7 +309,7 @@ class JellyfinApi {
         sortOrder: String = "Ascending",
         startIndex: Int = 0,
         limit: Int = 50,
-    ): PagedData<Shelf> {
+    ): Feed {
         val url = buildArtistUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
@@ -321,7 +322,7 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, ArtistDto>(url, limit, ArtistDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
-        }
+        }.toFeed()
     }
 
     suspend fun getArtist(artist: Artist): Artist {
@@ -452,7 +453,7 @@ class JellyfinApi {
         sortOrder: String = "Ascending",
         startIndex: Int = 0,
         limit: Int = 50,
-    ): PagedData<Shelf> {
+    ): Feed {
         val url = buildPlaylistUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
@@ -465,7 +466,7 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, PlaylistDto>(url, limit, PlaylistDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
-        }
+        }.toFeed()
     }
 
     suspend fun getPlaylist(playlist: Playlist): Playlist {
@@ -691,7 +692,7 @@ class JellyfinApi {
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 50,
-    ): PagedData<Shelf> {
+    ): Feed {
         val url = buildTrackUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
@@ -704,7 +705,7 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, TrackDto>(url, limit, TrackDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
-        }
+        }.toFeed()
     }
 
     suspend fun getTrack(track: Track): Track {
