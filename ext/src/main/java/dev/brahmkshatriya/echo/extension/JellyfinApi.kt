@@ -8,10 +8,11 @@ import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Feed
 import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
+import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeedData
 import dev.brahmkshatriya.echo.common.models.ImageHolder.Companion.toImageHolder
 import dev.brahmkshatriya.echo.common.models.Lyrics
+import dev.brahmkshatriya.echo.common.models.NetworkRequest.Companion.toGetRequest
 import dev.brahmkshatriya.echo.common.models.Playlist
-import dev.brahmkshatriya.echo.common.models.Request.Companion.toRequest
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Streamable
 import dev.brahmkshatriya.echo.common.models.Streamable.Media.Companion.toMedia
@@ -19,6 +20,7 @@ import dev.brahmkshatriya.echo.common.models.Track
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.extension.dto.AlbumDto
 import dev.brahmkshatriya.echo.extension.dto.ArtistDto
+import dev.brahmkshatriya.echo.extension.dto.CommonItemDto
 import dev.brahmkshatriya.echo.extension.dto.IdDto
 import dev.brahmkshatriya.echo.extension.dto.ItemListDto
 import dev.brahmkshatriya.echo.extension.dto.LoginDto
@@ -29,7 +31,6 @@ import dev.brahmkshatriya.echo.extension.dto.TrackDto
 import dev.brahmkshatriya.echo.extension.dto.toShelf
 import extension.ext.BuildConfig
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -43,10 +44,10 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
-import kotlin.collections.component1
-import kotlin.collections.component2
+import java.io.File
+import kotlin.io.encoding.Base64
+import okhttp3.RequestBody.Companion.toRequestBody as asRequestBody
 
 class JellyfinApi {
     private val json = Json {
@@ -203,7 +204,7 @@ class JellyfinApi {
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 50,
-    ): Feed {
+    ): Feed.Data<Shelf> {
         val url = buildAlbumUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
@@ -216,20 +217,15 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, AlbumDto>(url, limit, AlbumDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
-        }.toFeed()
+        }.toFeedData()
     }
 
     suspend fun getAlbum(album: Album): Album {
         checkAuth()
 
-        val url = getUrlBuilder().apply {
-            addPathSegment("Users")
-            addPathSegment(userCredentials.userId)
-            addPathSegment("Items")
-            addPathSegment(album.id)
-        }.build()
-
-        return client.get(url).parseAs<AlbumDto>().toAlbum(userCredentials.serverUrl)
+        return client.get(getItemUrl(album.id))
+            .parseAs<AlbumDto>()
+            .toAlbum(userCredentials.serverUrl)
     }
 
     fun getAlbumTracks(album: Album, limit: Int = 200): PagedData<Track> {
@@ -309,7 +305,7 @@ class JellyfinApi {
         sortOrder: String = "Ascending",
         startIndex: Int = 0,
         limit: Int = 50,
-    ): Feed {
+    ): Feed.Data<Shelf> {
         val url = buildArtistUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
@@ -322,20 +318,15 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, ArtistDto>(url, limit, ArtistDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
-        }.toFeed()
+        }.toFeedData()
     }
 
     suspend fun getArtist(artist: Artist): Artist {
         checkAuth()
 
-        val url = getUrlBuilder().apply {
-            addPathSegment("Users")
-            addPathSegment(userCredentials.userId)
-            addPathSegment("Items")
-            addPathSegment(artist.id)
-        }.build()
-
-        return client.get(url).parseAs<ArtistDto>().toArtist(userCredentials.serverUrl)
+        return client.get(getItemUrl(artist.id))
+            .parseAs<ArtistDto>()
+            .toArtist(userCredentials.serverUrl)
     }
 
     suspend fun getArtistAlbums(
@@ -380,18 +371,11 @@ class JellyfinApi {
         val items = data.items.map { it.toMediaItem(userCredentials.serverUrl) }
 
         return Shelf.Lists.Items(
+            id = artist.id,
             title = shelfTitle,
             list = items,
             more = null,
         )
-    }
-
-    // ============ Follow Artist =============
-
-    suspend fun followArtist(artist: Artist, follow: Boolean) {
-        checkAuth()
-
-        favoriteItem(artist.id, follow)
     }
 
     // ============== Playlists ===============
@@ -453,7 +437,7 @@ class JellyfinApi {
         sortOrder: String = "Ascending",
         startIndex: Int = 0,
         limit: Int = 50,
-    ): Feed {
+    ): Feed.Data<Shelf> {
         val url = buildPlaylistUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
@@ -466,20 +450,15 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, PlaylistDto>(url, limit, PlaylistDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
-        }.toFeed()
+        }.toFeedData()
     }
 
     suspend fun getPlaylist(playlist: Playlist): Playlist {
         checkAuth()
 
-        val url = getUrlBuilder().apply {
-            addPathSegment("Users")
-            addPathSegment(userCredentials.userId)
-            addPathSegment("Items")
-            addPathSegment(playlist.id)
-        }.build()
-
-        return client.get(url).parseAs<PlaylistDto>().toPlaylist(userCredentials.serverUrl)
+        return client.get(getItemUrl(playlist.id))
+            .parseAs<PlaylistDto>()
+            .toPlaylist(userCredentials.serverUrl)
     }
 
     fun getPlaylistTracks(playlist: Playlist, limit: Int = 200): PagedData<Track> {
@@ -559,14 +538,7 @@ class JellyfinApi {
     suspend fun editPlaylistMetadata(id: String, name: String, description: String?) {
         checkAuth()
 
-        val url = getUrlBuilder().apply {
-            addPathSegment("Users")
-            addPathSegment(userCredentials.userId)
-            addPathSegment("Items")
-            addPathSegment(id)
-        }.build()
-
-        val data = client.get(url)
+        val data = client.get(getItemUrl(id))
             .parseAs<Map<String, JsonElement>>()
             .toMutableMap()
             .apply {
@@ -633,6 +605,29 @@ class JellyfinApi {
         client.post(url)
     }
 
+    // ========= Edit Playlist Cover ==========
+
+    suspend fun updateCover(playlist: Playlist, cover: File?) {
+        checkAuth()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("Items")
+            addPathSegment(playlist.id)
+            addPathSegment("Images")
+            addPathSegment("Primary")
+        }.build()
+
+        if (cover == null) {
+            client.delete(url)
+        } else {
+            client.post(
+                url = url,
+                headers = Headers.headersOf("Content-Type", "image/png"),
+                body = Base64.Default.encode(cover.readBytes()).asRequestBody(),
+            )
+        }
+    }
+
     // ================ Tracks ================
 
     private fun buildTrackUrl(
@@ -692,7 +687,7 @@ class JellyfinApi {
         sortOrder: String = "Descending",
         startIndex: Int = 0,
         limit: Int = 50,
-    ): Feed {
+    ): Feed.Data<Shelf> {
         val url = buildTrackUrl(
             sortBy = sortBy,
             sortOrder = sortOrder,
@@ -705,24 +700,20 @@ class JellyfinApi {
 
         return getContinuousData<Shelf, TrackDto>(url, limit, TrackDto.serializer()) {
             it.toShelf(userCredentials.serverUrl)
-        }.toFeed()
+        }.toFeedData()
     }
 
     suspend fun getTrack(track: Track): Track {
         checkAuth()
 
-        val url = getUrlBuilder().apply {
-            addPathSegment("Users")
-            addPathSegment(userCredentials.userId)
-            addPathSegment("Items")
-            addPathSegment(track.id)
-        }.build()
-
-        return client.get(url).parseAs<TrackDto>().toTrack(userCredentials.serverUrl)
+        return client.get(getItemUrl(track.id))
+            .parseAs<TrackDto>()
+            .toTrack(userCredentials.serverUrl)
     }
 
     fun getStreamableMedia(streamable: Streamable): Streamable.Media {
         val type = streamable.extras["type"]!!
+        val container = streamable.extras["container"]!!
 
         return if (type == "source") {
             val url = getUrlBuilder().apply {
@@ -733,10 +724,13 @@ class JellyfinApi {
                 addQueryParameter("ApiKey", userCredentials.accessToken)
             }.build().toString()
 
-            Streamable.Source.Http(
-                request = url.toRequest(),
+            val httpSource = Streamable.Source.Http(
+                request = url.toGetRequest(),
                 quality = streamable.quality,
-            ).toMedia()
+                title = bitsToReadableSize(streamable.quality.toDouble()).takeUnless { container == "mp3" },
+            )
+
+            Streamable.Media.Server(listOf(httpSource), true)
         } else {
             // From https://github.com/jmshrv/finamp/blob/7b902e183a5117e846b2ed7c4a954b3800e21944/lib/services/music_player_background_task.dart#L738
             val url = getUrlBuilder().apply {
@@ -751,19 +745,72 @@ class JellyfinApi {
             }.build().toString()
 
             Streamable.Source.Http(
-                request = url.toRequest(),
+                request = url.toGetRequest(),
                 type = Streamable.SourceType.HLS,
                 quality = streamable.quality,
             ).toMedia()
         }
     }
 
-    // ============== Like Track ==============
+    // =============== Like Item ==============
 
-    suspend fun likeTrack(track: Track, isLiked: Boolean) {
+    suspend fun isItemLiked(item: EchoMediaItem): Boolean {
+        return client.get(getItemUrl(item.id))
+            .parseAs<CommonItemDto>()
+            .userData.isFavorite == true
+    }
+
+    suspend fun likeItem(item: EchoMediaItem, shouldLike: Boolean) {
         checkAuth()
 
-        favoriteItem(track.id, isLiked)
+        favoriteItem(item.id, shouldLike)
+    }
+
+    // =============== Tracker ================
+
+    suspend fun postPlaying(itemId: String) {
+        val body = buildJsonObject {
+            put("ItemId", itemId)
+            put("PositionTicks", 0)
+        }.toRequestBody()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("sessions")
+            addPathSegment("playing")
+        }.build()
+
+        client.post(url, body = body)
+    }
+
+    suspend fun postProgress(itemId: String, paused: Boolean, position: Long) {
+        val body = buildJsonObject {
+            put("IsPaused", paused)
+            put("ItemId", itemId)
+            put("PositionTicks", position)
+        }.toRequestBody()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("sessions")
+            addPathSegment("playing")
+            addPathSegment("progress")
+        }.build()
+
+        client.post(url, body = body)
+    }
+
+    suspend fun postStopped(itemId: String) {
+        val body = buildJsonObject {
+            put("IsPaused", true)
+            put("ItemId", itemId)
+        }.toRequestBody()
+
+        val url = getUrlBuilder().apply {
+            addPathSegment("sessions")
+            addPathSegment("playing")
+            addPathSegment("stopped")
+        }.build()
+
+        client.post(url, body = body)
     }
 
     // ================ Lyrics ================
@@ -832,7 +879,7 @@ class JellyfinApi {
 
     // =============== Helpers ================
 
-    suspend fun favoriteItem(itemId: String, isFavorite: Boolean) {
+    suspend fun favoriteItem(itemId: String, shouldFollow: Boolean) {
         val url = getUrlBuilder().apply {
             addPathSegment("Users")
             addPathSegment(userCredentials.userId)
@@ -840,7 +887,7 @@ class JellyfinApi {
             addPathSegment(itemId)
         }.build()
 
-        if (isFavorite) {
+        if (shouldFollow) {
             client.post(url)
         } else {
             client.delete(url)
@@ -857,11 +904,12 @@ class JellyfinApi {
 
         val items = data.items.map { it.toMediaItem(userCredentials.serverUrl) }
         val hasMore = (data.startIndex + limit) < data.totalRecordCount
-        val more = getContinuousData<EchoMediaItem, T>(url, limit, serializer) {
-            it.toMediaItem(userCredentials.serverUrl)
-        }.takeIf { hasMore }
+        val more = getContinuousData<Shelf, T>(url, limit, serializer) {
+            it.toMediaItem(userCredentials.serverUrl).toShelf()
+        }.takeIf { hasMore }?.toFeed()
 
         return Shelf.Lists.Items(
+            id = url.encodedPath,
             title = shelfTitle,
             list = items,
             more = more,
@@ -898,6 +946,15 @@ class JellyfinApi {
         return userCredentials.serverUrl.toHttpUrl().newBuilder()
     }
 
+    private fun getItemUrl(itemId: String): HttpUrl {
+        return getUrlBuilder().apply {
+            addPathSegment("Users")
+            addPathSegment(userCredentials.userId)
+            addPathSegment("Items")
+            addPathSegment(itemId)
+        }.build()
+    }
+
     fun checkAuth() {
         if (userCredentials.accessToken.isEmpty()) {
             throw ClientException.LoginRequired()
@@ -913,7 +970,7 @@ class JellyfinApi {
     }
 
     private inline fun <reified T> T.toRequestBody(): RequestBody {
-        return json.encodeToString(this).toRequestBody(
+        return json.encodeToString(this).asRequestBody(
             "application/json".toMediaType(),
         )
     }

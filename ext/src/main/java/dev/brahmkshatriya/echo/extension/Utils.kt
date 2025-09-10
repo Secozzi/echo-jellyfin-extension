@@ -37,6 +37,13 @@ fun randomString(length: Int = 16): String {
     }
 }
 
+fun bitsToReadableSize(bits: Double) = when {
+    bits >= 1 shl 30 -> "%.0f gbps".format(bits / (1 shl 30))
+    bits >= 1 shl 20 -> "%.1f mbps".format(bits / (1 shl 20))
+    bits >= 1 shl 10 -> "%.0f kbps".format(bits / (1 shl 10))
+    else -> "$bits bps"
+}
+
 fun String.getImageUrl(
     serverUrl: String,
     id: String,

@@ -20,9 +20,7 @@ data class AlbumDto(
     val overview: String? = null,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
-        return EchoMediaItem.Lists.AlbumItem(
-            toAlbum(serverUrl),
-        )
+        return toAlbum(serverUrl)
     }
 
     fun toAlbum(serverUrl: String): Album {
@@ -31,10 +29,11 @@ data class AlbumDto(
             title = this.name,
             cover = this.imageTags.primary?.getImageUrl(serverUrl, this.id),
             artists = this.artistItems.map { Artist(id = it.id, name = it.name) },
-            tracks = this.childCount,
+            trackCount = this.childCount?.toLong(),
             duration = this.runTimeTicks?.div(TICKS_PER_MS),
             releaseDate = premiereDate?.toDate(),
             description = overview?.takeIf(String::isNotEmpty),
+            isLikeable = true,
         )
     }
 }

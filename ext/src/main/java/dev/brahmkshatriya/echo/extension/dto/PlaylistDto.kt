@@ -18,9 +18,7 @@ data class PlaylistDto(
     val dateCreated: String? = null,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
-        return EchoMediaItem.Lists.PlaylistItem(
-            toPlaylist(serverUrl),
-        )
+        return toPlaylist(serverUrl)
     }
 
     fun toPlaylist(serverUrl: String): Playlist {
@@ -31,10 +29,11 @@ data class PlaylistDto(
             // extension on a server where they can't edit the playlists anyways
             isEditable = true,
             cover = this.imageTags.primary?.getImageUrl(serverUrl, this.id),
-            tracks = this.childCount,
+            trackCount = this.childCount?.toLong(),
             duration = this.runTimeTicks?.div(TICKS_PER_MS),
             creationDate = this.dateCreated?.toDate(),
             description = this.overview,
+            isLikeable = true,
         )
     }
 }

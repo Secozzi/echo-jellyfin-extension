@@ -2,23 +2,27 @@ package dev.brahmkshatriya.echo.extension
 
 import dev.brahmkshatriya.echo.common.clients.AlbumClient
 import dev.brahmkshatriya.echo.common.clients.ArtistClient
-import dev.brahmkshatriya.echo.common.clients.ArtistFollowClient
 import dev.brahmkshatriya.echo.common.clients.ExtensionClient
 import dev.brahmkshatriya.echo.common.clients.HomeFeedClient
 import dev.brahmkshatriya.echo.common.clients.LibraryFeedClient
+import dev.brahmkshatriya.echo.common.clients.LikeClient
 import dev.brahmkshatriya.echo.common.clients.LoginClient
 import dev.brahmkshatriya.echo.common.clients.LyricsClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
+import dev.brahmkshatriya.echo.common.clients.PlaylistEditCoverClient
+import dev.brahmkshatriya.echo.common.clients.QuickSearchClient
 import dev.brahmkshatriya.echo.common.clients.RadioClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.clients.TrackClient
-import dev.brahmkshatriya.echo.common.clients.TrackLikeClient
-import dev.brahmkshatriya.echo.common.helpers.PagedData
+import dev.brahmkshatriya.echo.common.clients.TrackerClient
+import dev.brahmkshatriya.echo.common.clients.TrackerMarkClient
+import dev.brahmkshatriya.echo.common.helpers.ClientException
 import dev.brahmkshatriya.echo.common.models.Album
 import dev.brahmkshatriya.echo.common.models.Artist
 import dev.brahmkshatriya.echo.common.models.EchoMediaItem
 import dev.brahmkshatriya.echo.common.models.Feed
+import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
 import dev.brahmkshatriya.echo.common.models.QuickSearchItem
@@ -27,6 +31,7 @@ import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Streamable
 import dev.brahmkshatriya.echo.common.models.Tab
 import dev.brahmkshatriya.echo.common.models.Track
+import dev.brahmkshatriya.echo.common.models.TrackDetails
 import dev.brahmkshatriya.echo.common.models.User
 import dev.brahmkshatriya.echo.common.settings.Setting
 import dev.brahmkshatriya.echo.common.settings.Settings
@@ -38,22 +43,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class JellyfinExtension :
     AlbumClient,
     ArtistClient,
-    ArtistFollowClient,
     ExtensionClient,
     HomeFeedClient,
     LibraryFeedClient,
+    LikeClient,
     LoginClient.CustomInput,
     LyricsClient,
     PlaylistClient,
     PlaylistEditClient,
+    PlaylistEditCoverClient,
+    QuickSearchClient,
     RadioClient,
     SearchFeedClient,
     TrackClient,
-    TrackLikeClient {
+    TrackerMarkClient {
 
     val api by lazy { JellyfinApi() }
 
@@ -61,7 +69,9 @@ class JellyfinExtension :
 
     override suspend fun onExtensionSelected() {}
 
-    override val settingItems: List<Setting> = emptyList()
+    override suspend fun getSettingItems(): List<Setting> {
+        return emptyList()
+    }
 
     private lateinit var setting: Settings
 
@@ -119,7 +129,7 @@ class JellyfinExtension :
         }
     }
 
-    override suspend fun onSetLoginUser(user: User?) {
+    override fun setLoginUser(user: User?) {
         api.setUser(user)
     }
 
@@ -129,11 +139,7 @@ class JellyfinExtension :
 
     // ============== Home Feed ===============
 
-    override suspend fun getHomeTabs(): List<Tab> {
-        return emptyList()
-    }
-
-    override fun getHomeFeed(tab: Tab?): Feed {
+    override suspend fun loadHomeFeed(): Feed<Shelf> {
         return createHomeFeed()
     }
 
@@ -163,56 +169,55 @@ class JellyfinExtension :
         searchHistory -= item.title
     }
 
-    override suspend fun searchTabs(query: String): List<Tab> {
-        return listOf(
-            Tab("all", "All"),
-            Tab("albums", "Albums"),
-            Tab("artists", "Artists"),
-            Tab("playlists", "Playlists"),
-            Tab("tracks", "Tracks"),
-        )
-    }
-
-    override fun searchFeed(
+    override suspend fun loadSearchFeed(
         query: String,
-        tab: Tab?,
-    ): Feed {
+    ): Feed<Shelf> {
         saveQueryToHistory(query)
 
-        return when (tab?.id) {
-            "all" -> createAllSearchFeed(query)
-            "albums" -> api.getAlbumPage(query)
-            "artists" -> api.getArtistPage(query)
-            "playlists" -> api.getPlaylistPage(query)
-            "tracks" -> api.getTrackPage(query)
-            else -> throw IllegalArgumentException("Invalid search tab")
+        return Feed(
+            listOf(
+                Tab("all", "All"),
+                Tab("albums", "Albums"),
+                Tab("artists", "Artists"),
+                Tab("playlists", "Playlists"),
+                Tab("tracks", "Tracks"),
+            ),
+        ) { tab ->
+            when (tab?.id) {
+                "all" -> createAllSearchFeed(query)
+                "albums" -> api.getAlbumPage(query)
+                "artists" -> api.getArtistPage(query)
+                "playlists" -> api.getPlaylistPage(query)
+                "tracks" -> api.getTrackPage(query)
+                else -> throw IllegalArgumentException("Invalid search tab")
+            }
         }
     }
 
     // =============== Library ================
 
-    override suspend fun getLibraryTabs(): List<Tab> {
-        return listOf(
-            Tab("all", "All"),
-            Tab("history", "History"),
-            Tab("favorites", "Favorites"),
-            Tab("albums", "Albums"),
-            Tab("artists", "Artists"),
-            Tab("playlists", "Playlists"),
-            Tab("tracks", "Tracks"),
-        )
-    }
-
-    override fun getLibraryFeed(tab: Tab?): Feed {
-        return when (tab?.id) {
-            "all" -> createAllLibraryFeed()
-            "history" -> api.getTrackPage(sortBy = "DatePlayed,SortName", sortOrder = "Descending")
-            "favorites" -> createFavoriteLibraryFeed()
-            "albums" -> api.getAlbumPage(sortBy = "SortName", sortOrder = "Ascending")
-            "artists" -> api.getArtistPage(sortBy = "SortName", sortOrder = "Ascending")
-            "playlists" -> api.getPlaylistPage(sortBy = "SortName", sortOrder = "Ascending")
-            "tracks" -> api.getTrackPage(sortBy = "SortName", sortOrder = "Ascending")
-            else -> throw IllegalArgumentException("Invalid library tab")
+    override suspend fun loadLibraryFeed(): Feed<Shelf> {
+        return Feed(
+            listOf(
+                Tab("all", "All"),
+                Tab("history", "History"),
+                Tab("favorites", "Favorites"),
+                Tab("albums", "Albums"),
+                Tab("artists", "Artists"),
+                Tab("playlists", "Playlists"),
+                Tab("tracks", "Tracks"),
+            ),
+        ) { tab ->
+            when (tab?.id) {
+                "all" -> createAllLibraryFeed()
+                "history" -> api.getTrackPage(sortBy = "DatePlayed,SortName", sortOrder = "Descending")
+                "favorites" -> createFavoriteLibraryFeed()
+                "albums" -> api.getAlbumPage(sortBy = "SortName", sortOrder = "Ascending")
+                "artists" -> api.getArtistPage(sortBy = "SortName", sortOrder = "Ascending")
+                "playlists" -> api.getPlaylistPage(sortBy = "SortName", sortOrder = "Ascending")
+                "tracks" -> api.getTrackPage(sortBy = "SortName", sortOrder = "Ascending")
+                else -> throw IllegalArgumentException("Invalid library tab")
+            }
         }
     }
 
@@ -222,22 +227,20 @@ class JellyfinExtension :
         return api.getAlbum(album)
     }
 
-    override fun loadTracks(album: Album): PagedData<Track> {
-        return api.getAlbumTracks(album)
+    override suspend fun loadTracks(album: Album): Feed<Track> {
+        return api.getAlbumTracks(album).toFeed()
     }
 
-    override fun getShelves(album: Album): PagedData<Shelf> {
-        return PagedData.Single {
-            listOfNotNull(
-                album.artists.firstOrNull()?.let {
-                    api.getArtistAlbums(
-                        artist = it,
-                        shelfTitle = "More from this artist",
-                        sortBy = "SortName",
-                        sortOrder = "Descending",
-                    )
-                },
-            )
+    override suspend fun loadFeed(album: Album): Feed<Shelf>? {
+        return album.artists.firstOrNull()?.let {
+            listOf(
+                api.getArtistAlbums(
+                    artist = it,
+                    shelfTitle = "More from this artist",
+                    sortBy = "SortName",
+                    sortOrder = "Descending",
+                ),
+            ).toFeed()
         }
     }
 
@@ -247,43 +250,35 @@ class JellyfinExtension :
         return api.getArtist(artist)
     }
 
-    override fun getShelves(artist: Artist): PagedData<Shelf> {
-        return PagedData.Single {
-            withContext(Dispatchers.IO) {
-                listOf(
-                    async {
-                        api.getArtistAlbums(
-                            artist = artist,
-                            shelfTitle = "Discography",
-                            sortBy = "SortName",
-                            sortOrder = "Ascending",
-                            limit = 15,
-                        )
-                    },
-                    async {
-                        api.getArtistAlbums(
-                            artist = artist,
-                            shelfTitle = "Recent releases",
-                            sortBy = "ProductionYear,PremiereDate,SortName",
-                            sortOrder = "Descending",
-                            limit = 15,
-                        )
-                    },
-                    async {
-                        api.getSimilarArtists(
-                            artist = artist,
-                            shelfTitle = "Related artists",
-                        )
-                    },
-                ).awaitAll()
-            }
-        }
-    }
-
-    // ============ Follow Artist =============
-
-    override suspend fun followArtist(artist: Artist, follow: Boolean) {
-        api.followArtist(artist, follow)
+    override suspend fun loadFeed(artist: Artist): Feed<Shelf> {
+        return withContext(Dispatchers.IO) {
+            listOf(
+                async {
+                    api.getArtistAlbums(
+                        artist = artist,
+                        shelfTitle = "Discography",
+                        sortBy = "SortName",
+                        sortOrder = "Ascending",
+                        limit = 15,
+                    )
+                },
+                async {
+                    api.getArtistAlbums(
+                        artist = artist,
+                        shelfTitle = "Recent releases",
+                        sortBy = "ProductionYear,PremiereDate,SortName",
+                        sortOrder = "Descending",
+                        limit = 15,
+                    )
+                },
+                async {
+                    api.getSimilarArtists(
+                        artist = artist,
+                        shelfTitle = "Related artists",
+                    )
+                },
+            ).awaitAll()
+        }.toFeed()
     }
 
     // =============== Playlist ===============
@@ -292,12 +287,12 @@ class JellyfinExtension :
         return api.getPlaylist(playlist)
     }
 
-    override fun loadTracks(playlist: Playlist): PagedData<Track> {
-        return api.getPlaylistTracks(playlist)
+    override suspend fun loadTracks(playlist: Playlist): Feed<Track> {
+        return api.getPlaylistTracks(playlist).toFeed()
     }
 
-    override fun getShelves(playlist: Playlist): PagedData<Shelf> {
-        return PagedData.Single { emptyList() }
+    override suspend fun loadFeed(playlist: Playlist): Feed<Shelf>? {
+        return null
     }
 
     // ============ Edit Playlist =============
@@ -351,9 +346,15 @@ class JellyfinExtension :
         api.moveInPlaylist(playlist, tracks, fromIndex, toIndex)
     }
 
+    // ========= Edit Playlist Cover ==========
+
+    override suspend fun editPlaylistCover(playlist: Playlist, cover: File?) {
+        api.updateCover(playlist, cover)
+    }
+
     // ================ Track =================
 
-    override suspend fun loadTrack(track: Track): Track {
+    override suspend fun loadTrack(track: Track, isDownload: Boolean): Track {
         return api.getTrack(track)
     }
 
@@ -364,39 +365,51 @@ class JellyfinExtension :
         return api.getStreamableMedia(streamable)
     }
 
-    override fun getShelves(track: Track): PagedData<Shelf> {
-        return PagedData.Single { emptyList() }
+    override suspend fun loadFeed(track: Track): Feed<Shelf>? {
+        return null
     }
 
-    // ============== Like Track ==============
+    // =============== Like Item ==============
 
-    override suspend fun likeTrack(track: Track, isLiked: Boolean) {
-        api.likeTrack(track, isLiked)
+    override suspend fun isItemLiked(item: EchoMediaItem): Boolean {
+        return api.isItemLiked(item)
+    }
+
+    override suspend fun likeItem(item: EchoMediaItem, shouldLike: Boolean) {
+        api.likeItem(item, shouldLike)
     }
 
     // =============== Tracker ================
 
-    // override suspend fun onTrackChanged(details: TrackDetails?) {
-    //     println("onTrackChanged: $details")
-    // }
-    //
-    // override val markAsPlayedDuration = null
-    //
-    // override suspend fun onMarkAsPlayed(details: TrackDetails) {
-    //     println("onMarkAsPlayed: $details")
-    // }
-    //
-    // override suspend fun onPlayingStateChanged(details: TrackDetails?, isPlaying: Boolean) {
-    //     println("onPlayingStateChanged: $isPlaying - $details")
-    // }
+    private var currentTrackId: String? = null
+    override suspend fun onTrackChanged(details: TrackDetails?) {
+        details?.track?.id?.let {
+            currentTrackId = it
+            api.postPlaying(it)
+        }
+    }
+
+    override suspend fun getMarkAsPlayedDuration(details: TrackDetails): Long? {
+        return null
+    }
+
+    override suspend fun onMarkAsPlayed(details: TrackDetails) { }
+
+    override suspend fun onPlayingStateChanged(details: TrackDetails?, isPlaying: Boolean) {
+        if (details == null) {
+            currentTrackId?.let { api.postStopped(it) }
+        } else {
+            api.postProgress(details.track.id, !isPlaying, details.currentPosition * TICKS_PER_MS)
+        }
+    }
 
     // ================ Lyrics ================
 
-    override fun searchTrackLyrics(
+    override suspend fun searchTrackLyrics(
         clientId: String,
         track: Track,
-    ): PagedData<Lyrics> {
-        return api.getLyrics(track)
+    ): Feed<Lyrics> {
+        return api.getLyrics(track).toFeed()
     }
 
     override suspend fun loadLyrics(lyrics: Lyrics): Lyrics {
@@ -405,31 +418,22 @@ class JellyfinExtension :
 
     // ================ Radio =================
 
-    override fun loadTracks(radio: Radio): PagedData<Track> {
-        return api.getRadioPage(radio.id, radio.extras["type"]!!)
+    override suspend fun radio(item: EchoMediaItem, context: EchoMediaItem?): Radio {
+        return when (item) {
+            is Artist -> Radio(id = item.id, title = "Instant Mix", extras = mapOf("type" to "Artists"))
+            is Album -> Radio(id = item.id, title = "Instant Mix", extras = mapOf("type" to "Albums"))
+            is Playlist -> Radio(id = item.id, title = "Instant Mix", extras = mapOf("type" to "Playlists"))
+            is Track -> Radio(id = item.id, title = "Instant Mix", extras = mapOf("type" to "Songs"))
+            is Radio -> throw ClientException.NotSupported("Shivam, why?")
+        }
     }
 
-    override suspend fun radio(
-        track: Track,
-        context: EchoMediaItem?,
-    ): Radio {
-        return Radio(id = track.id, title = "Instant Mix", extras = mapOf("type" to "Songs"))
+    override suspend fun loadTracks(radio: Radio): Feed<Track> {
+        return api.getRadioPage(radio.id, radio.extras["type"]!!).toFeed()
     }
 
-    override suspend fun radio(album: Album): Radio {
-        return Radio(id = album.id, title = "Instant Mix", extras = mapOf("type" to "Albums"))
-    }
-
-    override suspend fun radio(artist: Artist): Radio {
-        return Radio(id = artist.id, title = "Instant Mix", extras = mapOf("type" to "Artists"))
-    }
-
-    override suspend fun radio(user: User): Radio {
-        throw UnsupportedOperationException("Radio not supported for users")
-    }
-
-    override suspend fun radio(playlist: Playlist): Radio {
-        return Radio(id = playlist.id, title = "Instant Mix", extras = mapOf("type" to "Playlists"))
+    override suspend fun loadRadio(radio: Radio): Radio {
+        return radio
     }
 
     // ================ Utils =================

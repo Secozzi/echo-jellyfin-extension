@@ -15,9 +15,7 @@ data class ArtistDto(
     val userData: UserData? = null,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
-        return EchoMediaItem.Profile.ArtistItem(
-            toArtist(serverUrl),
-        )
+        return toArtist(serverUrl)
     }
 
     fun toArtist(serverUrl: String): Artist {
@@ -25,12 +23,13 @@ data class ArtistDto(
             id = this.id,
             name = this.name,
             cover = this.imageTags.primary?.getImageUrl(serverUrl, this.id),
-            description = this.overview,
+            bio = this.overview,
             banners = this.imageTags.banner?.getImageUrl(serverUrl, this.id, "Banner")?.let(::listOf)
                 ?: backdropImageTags?.mapIndexed { idx, tag ->
                     tag.getImageUrl(serverUrl, this.id, "Backdrop", idx)
                 }.orEmpty(),
-            isFollowing = userData?.isFavorite == true,
+            isFollowable = false,
+            isLikeable = true,
         )
     }
 }
