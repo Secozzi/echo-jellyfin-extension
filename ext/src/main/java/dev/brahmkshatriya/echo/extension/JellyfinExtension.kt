@@ -11,11 +11,9 @@ import dev.brahmkshatriya.echo.common.clients.LyricsClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditClient
 import dev.brahmkshatriya.echo.common.clients.PlaylistEditCoverClient
-import dev.brahmkshatriya.echo.common.clients.QuickSearchClient
 import dev.brahmkshatriya.echo.common.clients.RadioClient
 import dev.brahmkshatriya.echo.common.clients.SearchFeedClient
 import dev.brahmkshatriya.echo.common.clients.TrackClient
-import dev.brahmkshatriya.echo.common.clients.TrackerClient
 import dev.brahmkshatriya.echo.common.clients.TrackerMarkClient
 import dev.brahmkshatriya.echo.common.helpers.ClientException
 import dev.brahmkshatriya.echo.common.models.Album
@@ -25,7 +23,6 @@ import dev.brahmkshatriya.echo.common.models.Feed
 import dev.brahmkshatriya.echo.common.models.Feed.Companion.toFeed
 import dev.brahmkshatriya.echo.common.models.Lyrics
 import dev.brahmkshatriya.echo.common.models.Playlist
-import dev.brahmkshatriya.echo.common.models.QuickSearchItem
 import dev.brahmkshatriya.echo.common.models.Radio
 import dev.brahmkshatriya.echo.common.models.Shelf
 import dev.brahmkshatriya.echo.common.models.Streamable
@@ -57,7 +54,6 @@ class JellyfinExtension :
     PlaylistClient,
     PlaylistEditClient,
     PlaylistEditCoverClient,
-    QuickSearchClient,
     RadioClient,
     SearchFeedClient,
     TrackClient,
@@ -145,35 +141,9 @@ class JellyfinExtension :
 
     // ================ Search ================
 
-    private var searchHistory: List<String>
-        get() = setting.getString(SETTINGS_HISTORY_KEY)
-            ?.split(",")?.distinct()?.filter(String::isNotBlank)?.take(5)
-            ?: emptyList()
-        set(value) = setting.putString(SETTINGS_HISTORY_KEY, value.joinToString(","))
-
-    private fun saveQueryToHistory(query: String) {
-        val history = searchHistory.toMutableList()
-        history.add(0, query)
-        searchHistory = history
-    }
-
-    override suspend fun quickSearch(query: String): List<QuickSearchItem> {
-        return if (query.isBlank()) {
-            searchHistory.map { QuickSearchItem.Query(it, true) }
-        } else {
-            emptyList()
-        }
-    }
-
-    override suspend fun deleteQuickSearch(item: QuickSearchItem) {
-        searchHistory -= item.title
-    }
-
     override suspend fun loadSearchFeed(
         query: String,
     ): Feed<Shelf> {
-        saveQueryToHistory(query)
-
         return Feed(
             listOf(
                 Tab("all", "All"),
@@ -440,6 +410,5 @@ class JellyfinExtension :
 
     companion object {
         const val SETTINGS_DEVICE_ID_KEY = "device_id"
-        const val SETTINGS_HISTORY_KEY = "search_history"
     }
 }
