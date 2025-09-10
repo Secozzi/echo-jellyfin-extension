@@ -15,9 +15,15 @@ data class ArtistItemDto(
 )
 
 @Serializable
+data class CommonItemDto(
+    val userData: UserData,
+)
+
+@Serializable
 data class UserData(
     val isFavorite: Boolean? = null,
     val playCount: Long? = null,
+    val playbackPositionTicks: Long? = null,
 )
 
 @Serializable

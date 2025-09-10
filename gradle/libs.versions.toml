@@ -1,19 +1,19 @@
 [versions]
-agp = "8.9.2"
-kotlin = "2.1.20"
+agp = "8.12.2"
+kotlin = "2.2.10"
 junit = "4.13.2"
-kotlinx-coroutines-test = "1.10.1"
-shadow = "8.3.0"
-echo = "c3341cd00d"
+kotlinx-coroutines-test = "1.10.2"
+shadow = "9.1.0"
+echo = "1.0"
 
-buildconfig = "5.6.5"
-ktlint-core = "1.6.0"
-spotless = "7.0.3"
+buildconfig = "5.6.8"
+ktlint-core = "1.7.1"
+spotless = "7.2.1"
 
 [libraries]
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines-test" }
-echo = { module = "com.github.brahmkshatriya:echo", version.ref = "echo" }
+echo = { module = "dev.brahmkshatriya.echo:common", version.ref = "echo" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 
 [plugins]

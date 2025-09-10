@@ -54,11 +54,11 @@ tasks.register("uninstall") {
 
 android {
     namespace = "dev.brahmkshatriya.echo.extension"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "dev.brahmkshatriya.echo.extension.$extId"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
 
         manifestPlaceholders.apply {
             put("type", "dev.brahmkshatriya.echo.${extType}")

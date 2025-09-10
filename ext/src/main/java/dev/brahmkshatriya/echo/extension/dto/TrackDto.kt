@@ -21,28 +21,31 @@ data class TrackDto(
     val imageTags: ImageTagDto,
     val runTimeTicks: Long? = null,
     val userData: UserData,
+    val indexNumber: Long? = null,
+    val parentIndexNumber: Long? = null,
     val premiereDate: String? = null,
     val overview: String? = null,
     val mediaSources: List<MediaSource>? = null,
 ) : MediaItem {
     override fun toMediaItem(serverUrl: String): EchoMediaItem {
-        return EchoMediaItem.TrackItem(
-            toTrack(serverUrl),
-        )
+        return toTrack(serverUrl)
     }
 
     fun toTrack(serverUrl: String): Track {
         return Track(
             id = this.id,
             title = this.name,
-            artists = this.albumArtists.orEmpty().map { Artist(it.id, it.name) },
-            album = album?.let { name -> albumId?.let { id -> Album(id, name) } },
             cover = this.imageTags.primary?.getImageUrl(serverUrl, this.id)
                 ?: this.albumPrimaryImageTag?.getImageUrl(serverUrl, this.albumId!!),
+            artists = this.albumArtists.orEmpty().map { Artist(it.id, it.name) },
+            album = album?.let { name -> albumId?.let { id -> Album(id, name) } },
+            playedDuration = userData.playbackPositionTicks?.div(TICKS_PER_MS),
             duration = this.runTimeTicks?.div(TICKS_PER_MS),
             plays = this.userData.playCount,
             releaseDate = this.premiereDate?.takeUnless { it.startsWith("0001-01-01") }?.toDate(),
             description = this.overview,
+            albumOrderNumber = indexNumber,
+            albumDiscNumber = parentIndexNumber,
             streamables = this.mediaSources?.firstOrNull()?.let { media ->
                 val bitrate = media.mediaStreams.firstOrNull { it.type.equals("audio", true) }?.bitRate
                     ?: media.bitrate
@@ -53,7 +56,7 @@ data class TrackDto(
                             id = this@TrackDto.id,
                             quality = bitrate,
                             title = "Source",
-                            extras = mapOf("type" to "source"),
+                            extras = mapOf("type" to "source", "container" to media.container),
                         ),
                     )
 
@@ -63,19 +66,19 @@ data class TrackDto(
                                 id = this@TrackDto.id,
                                 quality = q * 1000,
                                 title = "${q}kbps",
-                                extras = mapOf("type" to (q * 1000).toString()),
+                                extras = mapOf("type" to (q * 1000).toString(), "container" to media.container),
                             ),
                         )
                     }
                 }
             } ?: emptyList(),
-            isLiked = this.userData.isFavorite == true,
         )
     }
 
     @Serializable
     data class MediaSource(
         val bitrate: Int,
+        val container: String,
         val mediaStreams: List<MediaStream>,
     ) {
         @Serializable
