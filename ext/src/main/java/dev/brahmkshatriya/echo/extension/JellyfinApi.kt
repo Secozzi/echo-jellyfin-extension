@@ -719,8 +719,8 @@ class JellyfinApi {
             val url = getUrlBuilder().apply {
                 addPathSegment("Audio")
                 addPathSegment(streamable.id)
-                addPathSegment("Universal")
-                addQueryParameter("UserId", userCredentials.userId)
+                addPathSegment("stream.$container")
+                addQueryParameter("static", "true")
                 addQueryParameter("ApiKey", userCredentials.accessToken)
             }.build().toString()
 
