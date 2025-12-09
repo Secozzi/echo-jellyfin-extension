@@ -1,3 +1,5 @@
+# ⚠️ This project has moved to https://gitlab.com/Secozzi/echo-jellyfin-extension
+
 # Echo Extension Template
 
 This is a template for creating an Echo extension. It includes a basic structure for the extension,
